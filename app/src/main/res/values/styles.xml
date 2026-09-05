@@ -5,7 +5,7 @@
     <style name="Theme.SettingsTheme" parent="Theme.LightTheme">
         <item name="android:windowBackground">?android:attr/colorBackground</item>
         <item name="colorAccent">#2A60F5</item>
-        <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.Compact</item>
     </style>
 
     <style name="Theme.SettingsTheme.Dark" parent="Theme.DarkTheme">
@@ -15,7 +15,7 @@
         <item name="toolbarSettingsBackground">@drawable/toolbar_elevate_dark</item>
         <!-- Dark settings has a special primary dark -->
         <item name="colorPrimaryDark">@color/secondary_color_settings_dark</item>
-        <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.Compact</item>
     </style>
 
     <style name="Theme.SettingsTheme.Black" parent="Theme.BlackTheme">
@@ -24,7 +24,31 @@
         <item name="colorPrimaryDark">?android:attr/colorBackground</item>
         <item name="colorAccent">#5C87F7</item>
         <item name="toolbarSettingsBackground">@drawable/toolbar_elevate_black</item>
-        <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.Compact</item>
+    </style>
+
+    <!-- Compact Preference Styles (Modern, Sleek, 46dp) -->
+    <style name="PreferenceThemeOverlay.Compact" parent="@style/PreferenceThemeOverlay">
+        <item name="preferenceCategoryStyle">@style/PreferenceCategory.Compact</item>
+        <item name="preferenceStyle">@style/Preference.Compact</item>
+        <item name="switchPreferenceStyle">@style/SwitchPreference.Compact</item>
+        <item name="switchPreferenceCompatStyle">@style/SwitchPreference.Compact</item>
+        <item name="checkBoxPreferenceStyle">@style/Preference.Compact</item>
+    </style>
+
+    <style name="PreferenceCategory.Compact" parent="@style/Preference.Category">
+        <item name="android:layout">@layout/preference_category_compact</item>
+        <item name="iconSpaceReserved">false</item>
+    </style>
+
+    <style name="Preference.Compact" parent="@style/Preference">
+        <item name="android:layout">@layout/preference_compact</item>
+        <item name="iconSpaceReserved">false</item>
+    </style>
+
+    <style name="SwitchPreference.Compact" parent="@style/Preference.SwitchPreferenceCompat">
+        <item name="android:layout">@layout/preference_compact</item>
+        <item name="iconSpaceReserved">false</item>
     </style>
 
     <!-- Regular themes -->

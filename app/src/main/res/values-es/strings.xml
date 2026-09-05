@@ -15,7 +15,7 @@
     <string name="agent">Agente de usuario</string>
     <string name="flash">Habilitar Adobe Flash</string>
     <string name="home">Página principal</string>
-    <string name="fullscreen">Modo de pantalla completa</string>
+    <string name="fullscreen">Ocultar barra al desplazarse</string>
     <string name="java">Habilitar Javascript</string>
     <string name="download">Descargar ubicación</string>
     <string name="action_menu">Menú</string>
@@ -444,9 +444,20 @@
     <string name="download_channel">Descargas</string>
     <string name="download_description">Información sobre el progreso de la descarga</string>
     <string name="download_to_sd">Download to SD card</string>
-    <string name="legacy_download_manager">Use integrated download manager</string>
-    <string name="legacy_download_manager_desc">Download files using the lw Browser download manager, instead of the system one</string>
+    <string name="legacy_download_manager">Usar gestor de descargas integrado</string>
+    <string name="legacy_download_manager_desc">Descargar archivos con el gestor integrado en vez del gestor del sistema</string>
     <string name="error">Error</string>
     <string name="save_file_success">Archivo guardado correctamente</string>
+    <string name="tabs_behavior">Comportamiento de pestañas</string>
+    <string name="tabs_startup">Inicio y restauración</string>
+    <string name="search_engine_category">Motor de búsqueda</string>
+    <string name="downloads_category">Descargas</string>
+    <string name="identity_category">Identidad</string>
+    <string name="web_content_category">Contenido web</string>
+    <string name="bars_category">Barras y navegación</string>
+    <string name="screen_category">Pantalla y visualización</string>
+    <string name="network_category">Red y proxy</string>
+    <string name="adblock_trackers_category">Bloqueador de anuncios y rastreadores</string>
+    <string name="clear_on_exit">Limpiar datos al salir</string>
     <!-- finish pages -->
 </resources>

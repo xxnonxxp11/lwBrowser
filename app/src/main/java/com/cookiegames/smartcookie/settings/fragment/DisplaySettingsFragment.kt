@@ -1,6 +1,5 @@
 package com.cookiegames.smartcookie.settings.fragment
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
@@ -8,36 +7,28 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.ViewGroup
 import android.view.WindowManager
-import android.webkit.URLUtil
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
-import androidx.core.view.size
 import com.cookiegames.smartcookie.AppTheme
 import com.cookiegames.smartcookie.MainActivity
 import com.cookiegames.smartcookie.R
-import com.cookiegames.smartcookie.browser.*
+import com.cookiegames.smartcookie.browser.ChooseNavbarCol
 import com.cookiegames.smartcookie.di.injector
 import com.cookiegames.smartcookie.dialog.BrowserDialog
 import com.cookiegames.smartcookie.extensions.resizeAndShow
 import com.cookiegames.smartcookie.extensions.withSingleChoiceItems
 import com.cookiegames.smartcookie.preference.UserPreferences
-import javax.inject.Inject
-import com.cookiegames.smartcookie.constant.SCHEME_BLANK
-import com.cookiegames.smartcookie.constant.SCHEME_BOOKMARKS
-import com.cookiegames.smartcookie.constant.SCHEME_HOMEPAGE
-import com.cookiegames.smartcookie.utils.ProxyUtils
 import com.flask.colorpicker.ColorPickerView
 import com.flask.colorpicker.builder.ColorPickerDialogBuilder
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import org.w3c.dom.Text
+import javax.inject.Inject
 
-
+/**
+ * Display, theme and visual customization settings.
+ */
 class DisplaySettingsFragment : AbstractSettingsFragment() {
-
-    private lateinit var themeOptions: Array<String>
 
     @Inject internal lateinit var userPreferences: UserPreferences
 
@@ -47,162 +38,169 @@ class DisplaySettingsFragment : AbstractSettingsFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         injector.inject(this)
 
-        // preferences storage
+        // Theme selection
+        clickableDynamicPreference(
+            preference = SETTINGS_THEME,
+            summary = userPreferences.useTheme.toDisplayString(),
+            onClick = ::showThemePicker
+        )
+
+        // Navbar color
         clickablePreference(
-            preference = SETTINGS_TEXTSIZE,
-            onClick = ::showTextSizePicker
+            preference = SETTINGS_NAVBAR_COL,
+            onClick = ::showColorPicker
         )
 
+        // Dark mode web
         switchPreference(
-                preference = SETTINGS_NAVBAR,
-                isChecked = userPreferences.navbar,
-                isEnabled = !userPreferences.bottomBar || userPreferences.navbar,
-                onCheckChange = { userPreferences.navbar = it }
+            preference = SETTINGS_DARK_MODE,
+            isChecked = userPreferences.darkModeExtension,
+            onCheckChange = {
+                userPreferences.darkModeExtension = it
+                Toast.makeText(activity, R.string.please_restart, Toast.LENGTH_LONG).show()
+            }
         )
 
+        // Black status bar (AMOLED)
+        switchPreference(
+            preference = SETTINGS_BLACK_STATUS,
+            isChecked = userPreferences.useBlackStatusBar,
+            onCheckChange = { userPreferences.useBlackStatusBar = it }
+        )
+
+        // Color mode
+        switchPreference(
+            preference = SETTINGS_COLOR_MODE,
+            isChecked = userPreferences.colorModeEnabled,
+            onCheckChange = { userPreferences.colorModeEnabled = it }
+        )
+
+        // Bottom toolbar
+        switchPreference(
+            preference = SETTINGS_BOTTOM_BAR,
+            isChecked = userPreferences.bottomBar,
+            onCheckChange = {
+                userPreferences.bottomBar = it
+                Toast.makeText(activity, R.string.please_restart, Toast.LENGTH_LONG).show()
+            }
+        )
+
+        // Hide status bar
         switchPreference(
             preference = SETTINGS_HIDESTATUSBAR,
             isChecked = userPreferences.hideStatusBarEnabled,
             onCheckChange = { userPreferences.hideStatusBarEnabled = it }
         )
 
+        // Hide toolbar while scrolling
         switchPreference(
             preference = SETTINGS_FULLSCREEN,
             isChecked = userPreferences.fullScreenEnabled,
-            onCheckChange = {userPreferences.fullScreenEnabled = it }
+            onCheckChange = { userPreferences.fullScreenEnabled = it }
         )
 
-        switchPreference(
-                preference = SETTINGS_EXTRA,
-                isChecked = userPreferences.showExtraOptions,
-                onCheckChange = { userPreferences.showExtraOptions = it}
+        // Text size
+        clickablePreference(
+            preference = SETTINGS_TEXTSIZE,
+            onClick = ::showTextSizePicker
         )
 
+        // Wide viewport
         switchPreference(
             preference = SETTINGS_VIEWPORT,
             isChecked = userPreferences.useWideViewPortEnabled,
             onCheckChange = { userPreferences.useWideViewPortEnabled = it }
         )
 
+        // Overview mode
         switchPreference(
             preference = SETTINGS_OVERVIEWMODE,
             isChecked = userPreferences.overviewModeEnabled,
             onCheckChange = { userPreferences.overviewModeEnabled = it }
         )
 
+        // Force zoom
         switchPreference(
-            preference = SETTINGS_REFLOW,
-            isChecked = userPreferences.textReflowEnabled,
-            onCheckChange = { userPreferences.textReflowEnabled = it }
-        )
-
-        switchPreference(
-            preference = SETTINGS_DRAWERTABS,
-            isChecked = userPreferences.showTabsInDrawer,
-            onCheckChange = { userPreferences.showTabsInDrawer = it }
-        )
-
-        switchPreference(
-            preference = SETTINGS_SWAPTABS,
-            isChecked = userPreferences.bookmarksAndTabsSwapped,
-            onCheckChange = { userPreferences.bookmarksAndTabsSwapped = it }
-        )
-
-        switchPreference(
-                preference = SETTINGS_FOREGROUND,
-                isChecked = userPreferences.tabsToForegroundEnabled,
-                onCheckChange = { userPreferences.tabsToForegroundEnabled = it }
-        )
-        switchPreference(
-                preference = SETTINGS_BOTTOM_BAR,
-                isChecked = userPreferences.bottomBar,
-                isEnabled = !userPreferences.navbar || userPreferences.bottomBar,
-                onCheckChange = {userPreferences.bottomBar = it; Toast.makeText(activity, R.string.please_restart, Toast.LENGTH_LONG).show()}
-        )
-        clickablePreference(
-                preference = SETTINGS_LINES,
-                onClick = ::showDrawerLines
-        )
-
-        clickablePreference(
-                preference = SETTINGS_SIZE,
-                onClick = ::showDrawerSize
+            preference = SETTINGS_FORCE_ZOOM,
+            isChecked = userPreferences.forceZoom,
+            onCheckChange = { userPreferences.forceZoom = it }
         )
     }
 
-    private fun showDrawerSize() {
+    private fun AppTheme.toDisplayString(): String = getString(when (this) {
+        AppTheme.LIGHT -> R.string.light_theme
+        AppTheme.DARK -> R.string.dark_theme
+        AppTheme.BLACK -> R.string.black_theme
+    })
+
+    private fun showThemePicker(summaryUpdater: SummaryUpdater) {
+        val currentTheme = userPreferences.useTheme
+        MaterialAlertDialogBuilder(requireContext()).apply {
+            setTitle(resources.getString(R.string.theme))
+            val values = AppTheme.values().map { Pair(it, it.toDisplayString()) }
+            withSingleChoiceItems(values, userPreferences.useTheme) {
+                userPreferences.useTheme = it
+                summaryUpdater.updateSummary(it.toDisplayString())
+            }
+            setPositiveButton(resources.getString(R.string.action_ok)) { _, _ ->
+                if (currentTheme != userPreferences.useTheme) {
+                    val intent = Intent(activity, MainActivity::class.java)
+                    startActivity(intent)
+                }
+            }
+            setOnCancelListener {
+                if (currentTheme != userPreferences.useTheme) {
+                    activity?.onBackPressed()
+                }
+            }
+        }.resizeAndShow()
+    }
+
+    private fun showColorPicker() {
         BrowserDialog.showCustomDialog(activity) {
-            setTitle(R.string.drawer_size)
-            val stringArray = resources.getStringArray(R.array.drawer_size)
-            val values = DrawerSizeChoice.values().map {
+            setTitle(R.string.navbar_col)
+            val stringArray = resources.getStringArray(R.array.navbar_col)
+            val values = ChooseNavbarCol.values().map {
                 Pair(it, when (it) {
-                    DrawerSizeChoice.AUTO -> stringArray[0]
-                    DrawerSizeChoice.ONE -> stringArray[1]
-                    DrawerSizeChoice.TWO -> stringArray[2]
-                    DrawerSizeChoice.THREE -> stringArray[3]
+                    ChooseNavbarCol.NONE -> stringArray[0]
+                    ChooseNavbarCol.COLOR -> stringArray[1]
                 })
             }
-            withSingleChoiceItems(values, userPreferences.drawerSize) {
-                userPreferences.drawerSize = it
+            withSingleChoiceItems(values, userPreferences.navbarColChoice) {
+                userPreferences.navbarColChoice = it
             }
-            setPositiveButton(R.string.action_ok){_, _ ->
-                Toast.makeText(activity, R.string.please_restart, Toast.LENGTH_LONG).show()
-            }
-        }
-
-    }
-
-    private fun showDrawerLines() {
-        BrowserDialog.showCustomDialog(activity) {
-            setTitle(R.string.drawer_lines)
-            val stringArray = resources.getStringArray(R.array.drawer_lines)
-            val values = DrawerLineChoice.values().map {
-                Pair(it, when (it) {
-                    DrawerLineChoice.ONE -> stringArray[0]
-                    DrawerLineChoice.TWO -> stringArray[1]
-                    DrawerLineChoice.THREE -> stringArray[2]
-                })
-            }
-            withSingleChoiceItems(values, userPreferences.drawerLines) {
-                userPreferences.drawerLines = it
-            }
-            setPositiveButton(R.string.action_ok){_, _ ->
-                Toast.makeText(activity, R.string.please_restart, Toast.LENGTH_LONG).show()
+            setPositiveButton(R.string.action_ok) { _, _ ->
+                updateNavbarCol(userPreferences.navbarColChoice)
             }
         }
-
-    }
-
-    private fun showNavbarColPicker(){
-        var initColor = userPreferences.colorNavbar
-        if(userPreferences.navbarColChoice == ChooseNavbarCol.NONE){
-            initColor = Color.WHITE
-        }
-        ColorPickerDialogBuilder
-                .with(activity)
-                .setTitle("Choose color")
-                .initialColor(initColor)
-                .wheelType(ColorPickerView.WHEEL_TYPE.FLOWER)
-                .density(12)
-                .setOnColorSelectedListener { /*selectedColor -> activity.toast("onColorSelected: 0x" + Integer.toHexString(selectedColor))*/ }
-                .setPositiveButton("ok") { dialog, selectedColor, allColors -> userPreferences.colorNavbar = selectedColor }
-                .setNegativeButton("cancel") { dialog, which -> }
-                .build()
-                .show()
     }
 
     private fun updateNavbarCol(choice: ChooseNavbarCol) {
         if (choice == ChooseNavbarCol.COLOR) {
             showNavbarColPicker()
-
         }
-
         userPreferences.navbarColChoice = choice
     }
 
+    private fun showNavbarColPicker() {
+        var initColor = userPreferences.colorNavbar
+        if (userPreferences.navbarColChoice == ChooseNavbarCol.NONE) {
+            initColor = Color.WHITE
+        }
+        ColorPickerDialogBuilder
+            .with(activity)
+            .setTitle("Choose color")
+            .initialColor(initColor)
+            .wheelType(ColorPickerView.WHEEL_TYPE.FLOWER)
+            .density(12)
+            .setOnColorSelectedListener { }
+            .setPositiveButton("ok") { _, selectedColor, _ -> userPreferences.colorNavbar = selectedColor }
+            .setNegativeButton("cancel") { _, _ -> }
+            .build()
+            .show()
+    }
 
     private fun showTextSizePicker() {
         val maxValue = 7
@@ -227,7 +225,6 @@ class DisplaySettingsFragment : AbstractSettingsFragment() {
                     max = maxValue
                     progress = maxValue - userPreferences.textSize
                 }
-
             }
             setView(customView)
             setTitle(R.string.title_text_size)
@@ -242,54 +239,38 @@ class DisplaySettingsFragment : AbstractSettingsFragment() {
         private val sampleText: TextView,
         private val sizeText: TextView
     ) : SeekBar.OnSeekBarChangeListener {
-
         override fun onProgressChanged(view: SeekBar, size: Int, user: Boolean) {
             this.sampleText.textSize = getTextSize(size)
             this.sizeText.text = (size * 15 + 40).toString() + "%"
         }
-
         override fun onStartTrackingTouch(arg0: SeekBar) {}
-
         override fun onStopTrackingTouch(arg0: SeekBar) {}
-
     }
 
     companion object {
-
+        private const val SETTINGS_THEME = "app_theme"
+        private const val SETTINGS_NAVBAR_COL = "navbar_col"
+        private const val SETTINGS_DARK_MODE = "dark_mode"
+        private const val SETTINGS_BLACK_STATUS = "black_status_bar"
+        private const val SETTINGS_COLOR_MODE = "cb_colormode"
+        private const val SETTINGS_BOTTOM_BAR = "bottom_bar"
         private const val SETTINGS_HIDESTATUSBAR = "fullScreenOption"
         private const val SETTINGS_FULLSCREEN = "fullscreen"
+        private const val SETTINGS_TEXTSIZE = "text_size"
         private const val SETTINGS_VIEWPORT = "wideViewPort"
         private const val SETTINGS_OVERVIEWMODE = "overViewMode"
-        private const val SETTINGS_REFLOW = "text_reflow"
-        private const val SETTINGS_TEXTSIZE = "text_size"
-        private const val SETTINGS_DRAWERTABS = "cb_drawertabs"
-        private const val SETTINGS_SWAPTABS = "cb_swapdrawers"
-        private const val SETTINGS_FOREGROUND = "new_tabs_foreground"
-        private const val SETTINGS_EXTRA = "show_extra"
-        private const val SETTINGS_BOTTOM_BAR = "bottom_bar"
-        private const val SETTINGS_LINES = "drawer_lines"
-        private const val SETTINGS_SIZE = "drawer_size"
-        private const val SETTINGS_NAVBAR = "second_bar"
-
-        private const val XXXX_LARGE = 38.0f
-        private const val XXX_LARGE = 34.0f
-        private const val XX_LARGE = 30.0f
-        private const val X_LARGE = 26.0f
-        private const val LARGE = 22.0f
-        private const val MEDIUM = 20.0f
-        private const val SMALL = 18.0f
-        private const val X_SMALL = 16.0f
+        private const val SETTINGS_FORCE_ZOOM = "force_zoom"
 
         private fun getTextSize(size: Int): Float = when (size) {
-            0 -> X_SMALL
-            1 -> SMALL
-            2 -> MEDIUM
-            3 -> LARGE
-            4 -> X_LARGE
-            5 -> XX_LARGE
-            6 -> XXX_LARGE
-            7 -> XXXX_LARGE
-            else -> MEDIUM
+            0 -> 10f
+            1 -> 12f
+            2 -> 14f
+            3 -> 16f
+            4 -> 18f
+            5 -> 20f
+            6 -> 22f
+            7 -> 24f
+            else -> 16f
         }
     }
 }

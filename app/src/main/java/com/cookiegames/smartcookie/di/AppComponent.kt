@@ -80,6 +80,8 @@ interface AppComponent {
 
     fun inject(adBlockSettingsFragment: AdBlockSettingsFragment)
 
+    fun inject(tabsSettingsFragment: TabsSettingsFragment)
+
     fun inject(drawerSettingsFragment: DrawerSettingsFragment)
 
     fun inject(homepageSettingsFragment: HomepageSettingsFragment)

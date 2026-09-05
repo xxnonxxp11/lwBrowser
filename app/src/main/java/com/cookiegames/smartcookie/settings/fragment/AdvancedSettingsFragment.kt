@@ -1,42 +1,64 @@
 package com.cookiegames.smartcookie.settings.fragment
 
-import android.content.Intent
+import android.app.Activity
+import android.os.Bundle
+import android.text.InputFilter
+import android.view.LayoutInflater
+import android.widget.EditText
+import android.widget.TextView
 import com.cookiegames.smartcookie.R
+import com.cookiegames.smartcookie.browser.JavaScriptChoice
+import com.cookiegames.smartcookie.browser.ProxyChoice
 import com.cookiegames.smartcookie.browser.SearchBoxDisplayChoice
 import com.cookiegames.smartcookie.constant.TEXT_ENCODINGS
 import com.cookiegames.smartcookie.di.injector
+import com.cookiegames.smartcookie.dialog.BrowserDialog
 import com.cookiegames.smartcookie.extensions.resizeAndShow
 import com.cookiegames.smartcookie.extensions.withSingleChoiceItems
 import com.cookiegames.smartcookie.preference.UserPreferences
+import com.cookiegames.smartcookie.utils.ProxyUtils
 import com.cookiegames.smartcookie.view.RenderingMode
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.widget.EditText
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
-import com.cookiegames.smartcookie.DeviceCapabilities
-import com.cookiegames.smartcookie.dialog.BrowserDialog
-import com.cookiegames.smartcookie.isSupported
-import com.cookiegames.smartcookie.settings.activity.SettingsActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import javax.inject.Inject
 
 /**
- * The advanced settings of the app.
+ * The advanced settings of the app: web engine, proxy, translator, and SSL.
  */
 class AdvancedSettingsFragment : AbstractSettingsFragment() {
 
     @Inject internal lateinit var userPreferences: UserPreferences
 
+    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+        addPreferencesFromResource(R.xml.preference_advanced)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         injector.inject(this)
 
+        // Web Engine
+        switchPreference(
+            preference = SETTINGS_NEW_WINDOW,
+            isChecked = userPreferences.popupsEnabled,
+            onCheckChange = { userPreferences.popupsEnabled = it }
+        )
+
+        switchPreference(
+            preference = SETTINGS_JAVASCRIPT,
+            isChecked = userPreferences.javaScriptEnabled,
+            onCheckChange = { userPreferences.javaScriptEnabled = it }
+        )
+
         clickableDynamicPreference(
-                preference = SETTINGS_TRANSLATION_ENDPOINT,
-                summary = userPreferences.translationEndpoint,
-                onClick = this::showTranslationEndpointPicker
+            preference = SETTINGS_BLOCK_JAVASCRIPT,
+            summary = userPreferences.javaScriptChoice.toSummary(),
+            onClick = ::showJavaScriptPicker
+        )
+
+        switchPreference(
+            preference = SETTINGS_BLOCK_INTENT,
+            isChecked = userPreferences.blockIntent,
+            onCheckChange = { userPreferences.blockIntent = it }
         )
 
         clickableDynamicPreference(
@@ -57,113 +79,182 @@ class AdvancedSettingsFragment : AbstractSettingsFragment() {
             onClick = this::showUrlBoxDialogPicker
         )
 
-        switchPreference(
-            preference = SETTINGS_NEW_WINDOW,
-            isChecked = userPreferences.popupsEnabled,
-            onCheckChange = { userPreferences.popupsEnabled = it }
+        // Connectivity & Proxy
+        clickableDynamicPreference(
+            preference = SETTINGS_PROXY,
+            summary = userPreferences.proxyChoice.toSummary(),
+            onClick = ::showProxyPicker
         )
 
+        // Translator
         switchPreference(
-            preference = SETTINGS_ENABLE_COOKIES,
-            isChecked = userPreferences.cookiesEnabled,
-            onCheckChange = { userPreferences.cookiesEnabled = it }
-        )
-        switchPreference(
-                preference = SETTINGS_BLOCK_INTENT,
-                isChecked = userPreferences.blockIntent,
-                onCheckChange = { userPreferences.blockIntent = it }
+            preference = SETTINGS_TRANSLATE,
+            isChecked = userPreferences.translateExtension,
+            onCheckChange = { userPreferences.translateExtension = it }
         )
 
-
-        switchPreference(
-            preference = SETTINGS_COOKIES_INCOGNITO,
-            isChecked = userPreferences.incognitoCookiesEnabled,
-            onCheckChange = { userPreferences.incognitoCookiesEnabled = it }
+        clickableDynamicPreference(
+            preference = SETTINGS_TRANSLATION_ENDPOINT,
+            summary = userPreferences.translationEndpoint,
+            onClick = this::showTranslationEndpointPicker
         )
 
+        // SSL Dialogs
         switchPreference(
-                preference = SETTINGS_SHOW_SSL,
-                isChecked = userPreferences.ssl,
-                onCheckChange = { userPreferences.ssl = it }
+            preference = SETTINGS_SHOW_SSL,
+            isChecked = userPreferences.ssl,
+            onCheckChange = { userPreferences.ssl = it }
         )
+    }
 
+    // --- Proxy ---
 
-        switchPreference(
-            preference = SETTINGS_RESTORE_TABS,
-            isChecked = userPreferences.restoreLostTabsEnabled,
-            onCheckChange = { userPreferences.restoreLostTabsEnabled = it }
-        )
+    private fun ProxyChoice.toSummary(): String {
+        val stringArray = resources.getStringArray(R.array.proxy_choices_array)
+        return when (this) {
+            ProxyChoice.NONE -> stringArray[0]
+            ProxyChoice.ORBOT -> stringArray[1]
+            ProxyChoice.I2P -> stringArray[2]
+            ProxyChoice.MANUAL -> "${userPreferences.proxyHost}:${userPreferences.proxyPort}"
+        }
+    }
 
-        switchPreference(
-                preference = SETTINGS_LEGACY_DOWNLOADER,
-                isChecked = userPreferences.useNewDownloader,
-                onCheckChange = { userPreferences.useNewDownloader = it }
-        )
+    private fun showProxyPicker(summaryUpdater: SummaryUpdater) {
+        BrowserDialog.showCustomDialog(activity) {
+            setTitle(R.string.http_proxy)
+            val stringArray = resources.getStringArray(R.array.proxy_choices_array)
+            val values = ProxyChoice.values().map {
+                Pair(it, when (it) {
+                    ProxyChoice.NONE -> stringArray[0]
+                    ProxyChoice.ORBOT -> stringArray[1]
+                    ProxyChoice.I2P -> stringArray[2]
+                    ProxyChoice.MANUAL -> stringArray[3]
+                })
+            }
+            withSingleChoiceItems(values, userPreferences.proxyChoice) {
+                updateProxyChoice(it, activity as Activity, summaryUpdater)
+            }
+            setPositiveButton(R.string.action_ok, null)
+        }
+    }
 
-        val incognitoCheckboxPreference = switchPreference(
-                preference = SETTINGS_COOKIES_INCOGNITO,
-                isEnabled = !DeviceCapabilities.FULL_INCOGNITO.isSupported,
-                isChecked = if (DeviceCapabilities.FULL_INCOGNITO.isSupported) {
-                    userPreferences.cookiesEnabled
-                } else {
-                    userPreferences.incognitoCookiesEnabled
-                },
-                summary = if (DeviceCapabilities.FULL_INCOGNITO.isSupported) {
-                    getString(R.string.incognito_cookies_new)
-                } else {
-                    null
-                },
-                onCheckChange = { userPreferences.incognitoCookiesEnabled = it }
-        )
+    private fun updateProxyChoice(choice: ProxyChoice, activity: Activity, summaryUpdater: SummaryUpdater) {
+        val sanitizedChoice = ProxyUtils.sanitizeProxyChoice(choice, activity)
+        if (sanitizedChoice == ProxyChoice.MANUAL) {
+            showManualProxyPicker(activity, summaryUpdater)
+        }
 
-        switchPreference(
-                preference = SETTINGS_ENABLE_COOKIES,
-                isChecked = userPreferences.cookiesEnabled,
-                onCheckChange = {
-                    userPreferences.cookiesEnabled = it
-                    if (DeviceCapabilities.FULL_INCOGNITO.isSupported) {
-                        incognitoCheckboxPreference?.isChecked = it
-                    }
+        userPreferences.proxyChoice = sanitizedChoice
+        summaryUpdater.updateSummary(sanitizedChoice.toSummary())
+    }
+
+    private fun showManualProxyPicker(activity: Activity, summaryUpdater: SummaryUpdater) {
+        val v = activity.layoutInflater.inflate(R.layout.dialog_manual_proxy, null)
+        val eProxyHost = v.findViewById<TextView>(R.id.proxyHost)
+        val eProxyPort = v.findViewById<TextView>(R.id.proxyPort)
+
+        val maxCharacters = Integer.MAX_VALUE.toString().length
+        eProxyPort.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(maxCharacters - 1))
+
+        eProxyHost.text = userPreferences.proxyHost
+        eProxyPort.text = userPreferences.proxyPort.toString()
+
+        BrowserDialog.showCustomDialog(activity) {
+            setTitle(R.string.manual_proxy)
+            setView(v)
+            setPositiveButton(R.string.action_ok) { _, _ ->
+                val proxyHost = eProxyHost.text.toString()
+                val proxyPort = try {
+                    Integer.parseInt(eProxyPort.text.toString())
+                } catch (ignored: NumberFormatException) {
+                    userPreferences.proxyPort
                 }
-        )
+
+                userPreferences.proxyHost = proxyHost
+                userPreferences.proxyPort = proxyPort
+                summaryUpdater.updateSummary("$proxyHost:$proxyPort")
+            }
+        }
     }
 
-    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        addPreferencesFromResource(R.xml.preference_advanced)
+    // --- JavaScript Block Rules ---
+
+    private fun JavaScriptChoice.toSummary(): String {
+        val stringArray = resources.getStringArray(R.array.block_javascript)
+        return when (this) {
+            JavaScriptChoice.NONE -> stringArray[0]
+            JavaScriptChoice.WHITELIST -> userPreferences.siteBlockNames
+            JavaScriptChoice.BLACKLIST -> userPreferences.siteBlockNames
+        }
     }
 
-    /**
-     * Shows the dialog which allows the user to choose the browser's rendering method.
-     *
-     * @param summaryUpdater the command which allows the summary to be updated.
-     */
+    private fun showJavaScriptPicker(summaryUpdater: SummaryUpdater) {
+        BrowserDialog.showCustomDialog(activity) {
+            setTitle(R.string.block_javascript)
+            val stringArray = resources.getStringArray(R.array.block_javascript)
+            val values = JavaScriptChoice.values().map {
+                Pair(it, when (it) {
+                    JavaScriptChoice.NONE -> stringArray[0]
+                    JavaScriptChoice.WHITELIST -> stringArray[1]
+                    JavaScriptChoice.BLACKLIST -> stringArray[2]
+                })
+            }
+            withSingleChoiceItems(values, userPreferences.javaScriptChoice) {
+                updateJavaScriptChoice(it, activity as Activity, summaryUpdater)
+            }
+            setPositiveButton(R.string.action_ok, null)
+        }
+    }
+
+    private fun updateJavaScriptChoice(choice: JavaScriptChoice, activity: Activity, summaryUpdater: SummaryUpdater) {
+        if (choice == JavaScriptChoice.WHITELIST || choice == JavaScriptChoice.BLACKLIST) {
+            showManualJavaScriptPicker(activity, summaryUpdater, choice)
+        }
+
+        userPreferences.javaScriptChoice = choice
+        summaryUpdater.updateSummary(choice.toSummary())
+    }
+
+    private fun showManualJavaScriptPicker(activity: Activity, summaryUpdater: SummaryUpdater, choice: JavaScriptChoice) {
+        val v = activity.layoutInflater.inflate(R.layout.site_block, null)
+        val blockedSites = v.findViewById<TextView>(R.id.siteBlock)
+
+        blockedSites.text = userPreferences.javaScriptBlocked
+
+        BrowserDialog.showCustomDialog(activity) {
+            setTitle(R.string.block_javascript)
+            setView(v)
+            setPositiveButton(R.string.action_ok) { _, _ ->
+                val proxyHost = blockedSites.text.toString()
+                userPreferences.javaScriptBlocked = proxyHost
+                if (choice.toString() == "BLACKLIST") {
+                    summaryUpdater.updateSummary(getText(R.string.listed_javascript).toString())
+                } else {
+                    summaryUpdater.updateSummary(getText(R.string.unlisted_javascript).toString())
+                }
+            }
+        }
+    }
+
+    // --- Rendering, Encoding & URL Content ---
+
     private fun showRenderingDialogPicker(summaryUpdater: SummaryUpdater) {
         activity?.let { MaterialAlertDialogBuilder(it) }?.apply {
             setTitle(resources.getString(R.string.rendering_mode))
-
             val values = RenderingMode.values().map { Pair(it, it.toDisplayString()) }
             withSingleChoiceItems(values, userPreferences.renderingMode) {
                 userPreferences.renderingMode = it
                 summaryUpdater.updateSummary(it.toDisplayString())
-
             }
             setPositiveButton(resources.getString(R.string.action_ok), null)
         }?.resizeAndShow()
-
     }
 
-    /**
-     * Shows the dialog which allows the user to choose the browser's text encoding.
-     *
-     * @param summaryUpdater the command which allows the summary to be updated.
-     */
     private fun showTextEncodingDialogPicker(summaryUpdater: SummaryUpdater) {
         activity?.let {
             MaterialAlertDialogBuilder(it).apply {
                 setTitle(resources.getString(R.string.text_encoding))
-
                 val currentChoice = TEXT_ENCODINGS.indexOf(userPreferences.textEncoding)
-
                 setSingleChoiceItems(TEXT_ENCODINGS, currentChoice) { _, which ->
                     userPreferences.textEncoding = TEXT_ENCODINGS[which]
                     summaryUpdater.updateSummary(TEXT_ENCODINGS[which])
@@ -173,17 +264,10 @@ class AdvancedSettingsFragment : AbstractSettingsFragment() {
         }
     }
 
-    /**
-     * Shows the dialog which allows the user to choose the browser's URL box display options.
-     *
-     * @param summaryUpdater the command which allows the summary to be updated.
-     */
     private fun showUrlBoxDialogPicker(summaryUpdater: SummaryUpdater) {
         activity?.let { MaterialAlertDialogBuilder(it) }?.apply {
             setTitle(resources.getString(R.string.url_contents))
-
             val items = SearchBoxDisplayChoice.values().map { Pair(it, it.toDisplayString()) }
-
             withSingleChoiceItems(items, userPreferences.urlBoxContentChoice) {
                 userPreferences.urlBoxContentChoice = it
                 summaryUpdater.updateSummary(it.toDisplayString())
@@ -212,38 +296,33 @@ class AdvancedSettingsFragment : AbstractSettingsFragment() {
     private fun showTranslationEndpointPicker(summaryUpdater: SummaryUpdater) {
         val dialogView = LayoutInflater.from(activity).inflate(R.layout.dialog_edit_text, null)
         val editText = dialogView.findViewById<EditText>(R.id.dialog_edit_text)
-
         editText.setText(userPreferences.translationEndpoint)
 
         val editorDialog = MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.translation_endpoint)
-                .setView(dialogView)
-                .setCancelable(false)
-                .setNegativeButton(R.string.action_back) { dialog, which ->
-                }
-                .setPositiveButton(R.string.action_ok
-                ) { _, _ ->
-                    userPreferences.translationEndpoint = editText.text.toString()
-                }
+            .setTitle(R.string.translation_endpoint)
+            .setView(dialogView)
+            .setCancelable(false)
+            .setNegativeButton(R.string.action_back) { _, _ -> }
+            .setPositiveButton(R.string.action_ok) { _, _ ->
+                userPreferences.translationEndpoint = editText.text.toString()
+            }
 
         val dialog = editorDialog.show()
         BrowserDialog.setDialogSize(requireContext(), dialog)
-
         summaryUpdater.updateSummary(editText.text.toString())
     }
 
     companion object {
-        private const val SETTINGS_NEW_WINDOW = "allow_new_window"
-        private const val SETTINGS_ENABLE_COOKIES = "allow_cookies"
-        private const val SETTINGS_COOKIES_INCOGNITO = "incognito_cookies"
-        private const val SETTINGS_RESTORE_TABS = "restore_tabs"
+        private const val SETTINGS_NEW_WINDOW = "new_window"
+        private const val SETTINGS_JAVASCRIPT = "cb_javascript"
+        private const val SETTINGS_BLOCK_JAVASCRIPT = "block_javascript"
+        private const val SETTINGS_BLOCK_INTENT = "block_intent"
         private const val SETTINGS_RENDERING_MODE = "rendering_mode"
         private const val SETTINGS_URL_CONTENT = "url_contents"
         private const val SETTINGS_TEXT_ENCODING = "text_encoding"
-        private const val SETTINGS_BLOCK_INTENT = "block_intent"
-        private const val SETTINGS_SHOW_SSL = "show_ssl"
-        private const val SETTINGS_LEGACY_DOWNLOADER = "downloader"
+        private const val SETTINGS_PROXY = "proxy"
+        private const val SETTINGS_TRANSLATE = "translate"
         private const val SETTINGS_TRANSLATION_ENDPOINT = "translation_endpoint"
+        private const val SETTINGS_SHOW_SSL = "show_ssl"
     }
-
 }

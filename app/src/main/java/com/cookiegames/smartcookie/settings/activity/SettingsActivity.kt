@@ -4,17 +4,18 @@
 package com.cookiegames.smartcookie.settings.activity
 
 import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.os.Bundle
 import android.view.MenuItem
-import androidx.appcompat.app.ActionBar
+import android.widget.ImageButton
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import com.cookiegames.smartcookie.preference.UserPreferences
-import androidx.appcompat.widget.Toolbar
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.cookiegames.smartcookie.AppTheme
 import com.cookiegames.smartcookie.R
 import com.cookiegames.smartcookie.di.injector
+import com.cookiegames.smartcookie.preference.UserPreferences
 import com.cookiegames.smartcookie.settings.fragment.SettingsFragment
 import com.cookiegames.smartcookie.utils.ThemeUtils
 import javax.inject.Inject
@@ -26,56 +27,71 @@ class SettingsActivity : AppCompatActivity(),
     internal lateinit var userPreferences: UserPreferences
 
     private var currentTheme: AppTheme = AppTheme.LIGHT
+    private lateinit var backButton: ImageButton
+    private lateinit var titleText: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         injector.inject(this)
 
         currentTheme = userPreferences.useTheme
+        val color: Int
         when (currentTheme) {
             AppTheme.LIGHT -> {
                 setTheme(R.style.Theme_SettingsTheme)
+                color = ThemeUtils.getColorBackground(this)
+                window.setBackgroundDrawable(ColorDrawable(color))
             }
             AppTheme.DARK -> {
                 setTheme(R.style.Theme_SettingsTheme_Dark)
+                color = ThemeUtils.getColorBackground(this)
+                window.setBackgroundDrawable(ColorDrawable(color))
             }
             AppTheme.BLACK -> {
                 setTheme(R.style.Theme_SettingsTheme_Black)
+                color = ThemeUtils.getColorBackground(this)
+                window.setBackgroundDrawable(ColorDrawable(color))
             }
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            window.statusBarColor = color
         }
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
 
-        val toolbar: Toolbar = findViewById(R.id.toolbar)
+        backButton = findViewById(R.id.settings_back_button)
+        titleText = findViewById(R.id.settings_title)
 
-        try {
-            setSupportActionBar(toolbar)
-            val actionBar: ActionBar? = supportActionBar
-            if (actionBar != null) {
-                actionBar.setDisplayShowTitleEnabled(true)
-                actionBar.setDisplayHomeAsUpEnabled(true)
-                actionBar.setDisplayShowHomeEnabled(true)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        backButton.setOnClickListener {
+            onBackPressed()
         }
 
         if (savedInstanceState == null) {
-            title = getString(R.string.settings)
+            val defaultTitle = getString(R.string.settings)
+            title = defaultTitle
+            titleText.text = defaultTitle
             supportFragmentManager.beginTransaction()
                 .replace(R.id.container, SettingsFragment())
                 .commit()
         } else {
-            title = savedInstanceState.getCharSequence(TITLE_TAG, getString(R.string.settings))
+            val savedTitle = savedInstanceState.getCharSequence(TITLE_TAG, getString(R.string.settings))
+            title = savedTitle
+            titleText.text = savedTitle
         }
 
         supportFragmentManager.addOnBackStackChangedListener {
             val count = supportFragmentManager.backStackEntryCount
             if (count == 0) {
-                title = getString(R.string.settings)
+                val defaultTitle = getString(R.string.settings)
+                title = defaultTitle
+                titleText.text = defaultTitle
             } else {
                 val entry = supportFragmentManager.getBackStackEntryAt(count - 1)
-                entry.name?.let { title = it }
+                entry.name?.let {
+                    title = it
+                    titleText.text = it
+                }
             }
         }
 
@@ -118,6 +134,7 @@ class SettingsActivity : AppCompatActivity(),
 
         pref.title?.let {
             title = it
+            titleText.text = it
         }
         return true
     }

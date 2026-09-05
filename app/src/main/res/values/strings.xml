@@ -649,5 +649,16 @@
     <string name="recover_app_lock">Please visit <a href="https://github.com/xxnonxxp11/lwBrowser/recover.php">github.com/xxnonxxp11/lwBrowser/recover.php</a> in another browser to recover your app lock password.</string>
     <string name="error">Error</string>
     <string name="save_file_success">File saved successfully</string>
+    <string name="tabs_behavior">Tab behavior</string>
+    <string name="tabs_startup">Startup and restoration</string>
+    <string name="search_engine_category">Search engine</string>
+    <string name="downloads_category">Downloads</string>
+    <string name="identity_category">Identity</string>
+    <string name="web_content_category">Web content</string>
+    <string name="bars_category">Toolbars and navigation</string>
+    <string name="screen_category">Screen and rendering</string>
+    <string name="network_category">Network and proxy</string>
+    <string name="adblock_trackers_category">Ad &amp; tracker blocking</string>
+    <string name="clear_on_exit">Clear on exit</string>
     <!-- finish pages -->
 </resources>

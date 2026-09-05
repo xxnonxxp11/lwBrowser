@@ -1,52 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.preference.PreferenceScreen
-    xmlns:android="http://schemas.android.com/apk/res/android">
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
     <androidx.preference.Preference
         android:fragment="com.cookiegames.smartcookie.settings.fragment.GeneralSettingsFragment"
-        android:icon="@drawable/ic_settings_general_layers"
+        android:icon="@drawable/ic_settings_nav_general"
         android:title="@string/settings_general"
-        android:singleLineTitle="false"
-        android:summary="@string/settings_general_explain"/>
-    <androidx.preference.Preference
-        android:fragment="com.cookiegames.smartcookie.settings.fragment.ExportSettingsFragment"
-        android:icon="@drawable/ic_settings_import_export_layers"
-        android:singleLineTitle="false"
-        android:title="@string/import_export"
-        android:summary="@string/settings_bookmark_explain" />
+        android:summary="Buscador, página de inicio, descargas y user agent" />
+
     <androidx.preference.Preference
         android:fragment="com.cookiegames.smartcookie.settings.fragment.DisplaySettingsFragment"
-        android:icon="@drawable/ic_settings_customize_layers"
-        android:singleLineTitle="false"
+        android:icon="@drawable/ic_settings_nav_display"
         android:title="@string/customize"
-        android:summary="@string/settings_display_explain"/>
+        android:summary="Temas, modo oscuro web, colores, barras y pantalla" />
+
+    <androidx.preference.Preference
+        android:fragment="com.cookiegames.smartcookie.settings.fragment.TabsSettingsFragment"
+        android:icon="@drawable/ic_settings_nav_tabs"
+        android:title="@string/action_tabs"
+        android:summary="Comportamiento de pestañas, restauración y primer plano" />
+
     <androidx.preference.Preference
         android:fragment="com.cookiegames.smartcookie.settings.fragment.PrivacySettingsFragment"
-        android:icon="@drawable/ic_settings_shield_layers"
-        android:singleLineTitle="false"
+        android:icon="@drawable/ic_settings_nav_privacy"
         android:title="@string/settings_privacy"
-        android:summary="@string/settings_privacy_explain" />
+        android:summary="Bloqueador de anuncios, malware, cookies, HTTPS y limpieza" />
+
     <androidx.preference.Preference
         android:fragment="com.cookiegames.smartcookie.settings.fragment.AdvancedSettingsFragment"
-        android:icon="@drawable/ic_settings_advanced_layers"
+        android:icon="@drawable/ic_settings_nav_advanced"
         android:title="@string/settings_advanced"
-        android:singleLineTitle="false"
-        android:summary="@string/settings_advanced_explain" />
+        android:summary="JavaScript, reglas por sitio, ventanas emergentes y proxy" />
+
     <androidx.preference.Preference
-        android:fragment="com.cookiegames.smartcookie.settings.fragment.AdBlockSettingsFragment"
-        android:icon="@drawable/ic_settings_block_layers"
-        android:singleLineTitle="false"
-        android:title="@string/settings_adblock"
-        android:summary="@string/adblock_summary"/>
-   <androidx.preference.Preference
-        android:fragment="com.cookiegames.smartcookie.settings.fragment.ExtensionsSettingsFragment"
-        android:icon="@drawable/ic_settings_extensions_layers"
-        android:title="@string/extensions"
-       android:singleLineTitle="false"
-       android:summary="@string/extensions_description" />
+        android:fragment="com.cookiegames.smartcookie.settings.fragment.ExportSettingsFragment"
+        android:icon="@drawable/ic_settings_nav_backup"
+        android:title="@string/import_export"
+        android:summary="Exportar e importar marcadores, pestañas y ajustes" />
+
     <androidx.preference.Preference
         android:fragment="com.cookiegames.smartcookie.settings.fragment.AboutSettingsFragment"
-        android:icon="@drawable/ic_settings_about_layers"
-        android:singleLineTitle="false"
-        android:summary="@string/settings_about_explain"
-        android:title="@string/settings_about"/>
+        android:icon="@drawable/ic_settings_nav_about"
+        android:title="@string/settings_about"
+        android:summary="Versión de lw Browser, WebView y repositorio" />
+
 </androidx.preference.PreferenceScreen>
