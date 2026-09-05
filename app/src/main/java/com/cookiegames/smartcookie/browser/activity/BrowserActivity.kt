@@ -2801,8 +2801,32 @@ abstract class BrowserActivity : ThemableBrowserActivity(), BrowserView, UIContr
         page2View.findViewById<View>(R.id.btn_via_images)?.setOnClickListener {
             dialog.dismiss()
             userPreferences.blockImagesEnabled = !userPreferences.blockImagesEnabled
-            Toast.makeText(this, if (!userPreferences.blockImagesEnabled) "Mostrar imágenes activado" else "Bloqueo de imágenes activado", Toast.LENGTH_SHORT).show()
-            currentTab?.reload()
+            tabsManager.allTabs.forEach { tab ->
+                tab.initializePreferences()
+            }
+            if (userPreferences.blockImagesEnabled) {
+                currentTab?.webView?.evaluateJavascript("""
+                    (function() {
+                        var style = document.getElementById('lw_block_images_style');
+                        if (!style) {
+                            style = document.createElement('style');
+                            style.id = 'lw_block_images_style';
+                            style.textContent = 'img, picture, image, [style*="background-image"] { display: none !important; visibility: hidden !important; }';
+                            (document.head || document.documentElement).appendChild(style);
+                        }
+                    })();
+                """.trimIndent(), null)
+                Toast.makeText(this, "Modo sin imágenes activado", Toast.LENGTH_SHORT).show()
+            } else {
+                currentTab?.webView?.evaluateJavascript("""
+                    (function() {
+                        var style = document.getElementById('lw_block_images_style');
+                        if (style) { style.remove(); }
+                    })();
+                """.trimIndent(), null)
+                Toast.makeText(this, "Carga de imágenes activada", Toast.LENGTH_SHORT).show()
+                currentTab?.reload()
+            }
         }
 
         page2View.findViewById<View>(R.id.btn_via_inspect)?.setOnClickListener {

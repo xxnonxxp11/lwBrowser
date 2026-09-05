@@ -257,9 +257,31 @@ class SmartCookieWebClient(
 
     }
 
+    private fun isImageRequest(url: String, headers: Map<String, String>? = null): Boolean {
+        if (url.startsWith("file://") || url.startsWith("about:") || url.startsWith("data:text/")) {
+            return false
+        }
+        headers?.let { map ->
+            val accept = map["Accept"] ?: map["accept"]
+            if (accept != null && accept.contains("image/")) {
+                return true
+            }
+        }
+        val lower = url.toLowerCase(Locale.ROOT)
+        return lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") ||
+                lower.endsWith(".webp") || lower.endsWith(".gif") || lower.endsWith(".svg") ||
+                lower.endsWith(".avif") || lower.endsWith(".ico") || lower.endsWith(".bmp") ||
+                lower.contains(".png?") || lower.contains(".jpg?") || lower.contains(".jpeg?") ||
+                lower.contains(".webp?") || lower.contains(".gif?") || lower.contains(".svg?") ||
+                lower.contains(".avif?") || lower.contains(".ico?")
+    }
+
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
         val requestUrl = request.url.toString()
+        if (userPreferences.blockImagesEnabled && isImageRequest(requestUrl, request.requestHeaders)) {
+            return WebResourceResponse("image/png", "UTF-8", ByteArrayInputStream(emptyResponseByteArray))
+        }
         if (shouldRequestBeBlocked(currentUrl, requestUrl)) {
             if (request.isForMainFrame && request.url.host.toString() != lastBlockedDomain) {
                 if (userPreferences.useTheme == AppTheme.LIGHT) {
@@ -279,6 +301,9 @@ class SmartCookieWebClient(
     @Suppress("OverridingDeprecatedMember")
     @TargetApi(Build.VERSION_CODES.KITKAT_WATCH)
     override fun shouldInterceptRequest(view: WebView, url: String): WebResourceResponse? {
+        if (userPreferences.blockImagesEnabled && isImageRequest(url, null)) {
+            return WebResourceResponse("image/png", "UTF-8", ByteArrayInputStream(emptyResponseByteArray))
+        }
         if (shouldRequestBeBlocked(currentUrl, url)) {
             return createBlockedResponse(url)
         }
@@ -434,6 +459,20 @@ class SmartCookieWebClient(
             if (url.contains("youtube.com") || url.contains("youtu.be")) {
                 view.evaluateJavascript(uBlockAdDefuser.youtubeAdDefuserJs, null)
             }
+        }
+
+        if (userPreferences.blockImagesEnabled && !url.contains("/files/homepage.html") && !url.contains("/files/incognito.html")) {
+            view.evaluateJavascript("""
+                (function() {
+                    var style = document.getElementById('lw_block_images_style');
+                    if (!style) {
+                        style = document.createElement('style');
+                        style.id = 'lw_block_images_style';
+                        style.textContent = 'img, picture, image, [style*="background-image"] { display: none !important; visibility: hidden !important; }';
+                        (document.head || document.documentElement).appendChild(style);
+                    }
+                })();
+            """.trimIndent(), null)
         }
 
         if(url.contains(".user.js") && view.isShown && userPreferences.javaScriptEnabled){
@@ -716,6 +755,20 @@ class SmartCookieWebClient(
             if (url.contains("youtube.com") || url.contains("youtu.be")) {
                 view.evaluateJavascript(uBlockAdDefuser.youtubeAdDefuserJs, null)
             }
+        }
+
+        if (userPreferences.blockImagesEnabled && !url.contains("/files/homepage.html") && !url.contains("/files/incognito.html")) {
+            view.evaluateJavascript("""
+                (function() {
+                    var style = document.getElementById('lw_block_images_style');
+                    if (!style) {
+                        style = document.createElement('style');
+                        style.id = 'lw_block_images_style';
+                        style.textContent = 'img, picture, image, [style*="background-image"] { display: none !important; visibility: hidden !important; }';
+                        (document.head || document.documentElement).appendChild(style);
+                    }
+                })();
+            """.trimIndent(), null)
         }
 
         if (userPreferences.forceHTTPSenabled || userPreferences.preferHTTPSenabled) {

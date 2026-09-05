@@ -379,6 +379,7 @@ class SmartCookieView(
         }
 
         settings.blockNetworkImage = userPreferences.blockImagesEnabled
+        settings.loadsImagesAutomatically = !userPreferences.blockImagesEnabled
 
         // TODO: see if crashes still apply
         settings.setSupportMultipleWindows(userPreferences.popupsEnabled)
