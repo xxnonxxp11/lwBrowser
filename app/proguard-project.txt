@@ -64,25 +64,73 @@
   public static final android.os.Parcelable$Creator *;
 }
 
-# The support library contains references to newer platform versions.
-# Don't warn about those in case this app is linking against an older
-# platform version.  We know about them, and they are safe.
--dontwarn android.support.**
+# ADBLOCKER (CRITICAL: Preserved 100%)
+-keep class com.cookiegames.smartcookie.adblock.** { *; }
+-keepclassmembers class com.cookiegames.smartcookie.adblock.** { *; }
 
-# The I2P Java API bundled inside the I2P Android client library contains
-# references to javax.naming classes that Android doesn't have. But those
-# classes are never used on Android, and it is safe to ignore the warnings.
--dontwarn net.i2p.crypto.CertUtil
--dontwarn org.apache.http.conn.ssl.DefaultHostnameVerifier
+# Dagger 2
+-dontwarn dagger.**
+-dontwarn javax.inject.**
+-dontwarn javax.annotation.**
+-keep class dagger.** { *; }
+-keep class javax.inject.** { *; }
+-keep class * extends dagger.internal.Binding
+-keep class * extends dagger.internal.ModuleAdapter
+-keep class **$$Factory { *; }
+-keep class **$$MembersInjector { *; }
+-keep class **_Factory { *; }
+-keep class **_MembersInjector { *; }
+-keep class * {
+    @javax.inject.Inject *;
+    @javax.inject.Named *;
+    @javax.inject.Singleton *;
+}
+-keep class com.cookiegames.smartcookie.di.** { *; }
 
--dontwarn org.apache.http.HttpHost
+# ButterKnife
+-dontwarn butterknife.internal.**
+-keep class butterknife.** { *; }
+-keep class **_ViewBinding { *; }
+-keepclasseswithmembernames class * {
+    @butterknife.* <fields>;
+}
+-keepclasseswithmembernames class * {
+    @butterknife.* <methods>;
+}
 
-# Needed for okhttp
--dontwarn javax.annotation.Nullable
--dontwarn javax.annotation.ParametersAreNonnullByDefault
+# Mezzanine
+-dontwarn com.anthonycr.mezzanine.**
+-keep class com.anthonycr.mezzanine.** { *; }
+-keep class **MezzanineGenerator** { *; }
+
+# DataBinding
+-dontwarn androidx.databinding.**
+-keep class androidx.databinding.** { *; }
+-keep class **.databinding.** { *; }
+-keepclassmembers class **.databinding.** { *; }
+
+# ColorPicker
+-dontwarn com.flask.colorpicker.**
+-keep class com.flask.colorpicker.** { *; }
+
+# OkHttp & Okio
 -dontwarn okhttp3.**
 -dontwarn okio.**
--dontwarn javax.annotation.**
 -dontwarn org.conscrypt.**
-# A resource is loaded with a relative path so the package of this class must be preserved.
 -keepnames class okhttp3.internal.publicsuffix.PublicSuffixDatabase
+
+# RxJava & RxAndroid
+-dontwarn io.reactivex.**
+-keepclassmembers class io.reactivex.** { *; }
+
+# Kotlin & Coroutines
+-dontwarn kotlin.**
+-dontwarn kotlinx.**
+
+# I2P Helper
+-dontwarn net.i2p.crypto.CertUtil
+-dontwarn net.i2p.android.**
+
+# General warnings suppression for missing optional references
+-dontwarn android.support.**
+-dontwarn androidx.**

@@ -2,16 +2,20 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    xmlns:bind="http://schemas.android.com/apk/res-auto"
+    android:padding="8dp"
     android:gravity="center_horizontal"
     android:orientation="vertical">
 
-    <com.github.ahmadaghazadeh.editor.widget.CodeEditor
+    <androidx.appcompat.widget.AppCompatEditText
         android:id="@+id/dialog_multi_line"
-        bind:lang="html"
-        bind:isReadOnly="false"
-        bind:isShowExtendedKeyboard="false"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="320dp"
+        android:gravity="top|start"
+        android:fontFamily="monospace"
+        android:textSize="12sp"
+        android:scrollbars="vertical"
+        android:overScrollMode="always"
+        android:background="@null"
+        android:inputType="textMultiLine|textNoSuggestions" />
 
 </LinearLayout>

@@ -50,7 +50,7 @@ import com.cookiegames.smartcookie.utils.IntentUtils
 import com.cookiegames.smartcookie.utils.Utils
 import com.cookiegames.smartcookie.utils.isSpecialUrl
 import com.cookiegames.smartcookie.utils.stringContainsItemFromList
-import com.github.ahmadaghazadeh.editor.widget.CodeEditor
+import android.widget.EditText
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.android.synthetic.main.activity_main.*
 import java.net.URL
@@ -342,12 +342,12 @@ class PopUpClass {
                                 val inflater = activity.layoutInflater
                                 builder.setTitle(R.string.page_source)
                                 val dialogLayout = inflater.inflate(R.layout.dialog_view_source, null)
-                                val editText = dialogLayout.findViewById<CodeEditor>(R.id.dialog_multi_line)
-                                editText.setText(name, 1)
+                                val editText = dialogLayout.findViewById<EditText>(R.id.dialog_multi_line)
+                                editText.setText(name)
                                 builder.setView(dialogLayout)
                                 builder.setPositiveButton("OK") { _, _ ->
-                                    editText.setText(editText.text?.toString()?.replace("\'", "\\\'"), 1);
-                                    currentTab.loadUrl("javascript:(function() { document.documentElement.innerHTML = '" + editText.text.toString() + "'; })()")
+                                    val updatedCode = editText.text?.toString()?.replace("\'", "\\\'") ?: ""
+                                    currentTab.loadUrl("javascript:(function() { document.documentElement.innerHTML = '" + updatedCode + "'; })()")
                                 }
                                 builder.show()
                             }

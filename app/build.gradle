@@ -27,6 +27,7 @@ android {
         versionCode 1
         vectorDrawables.useSupportLibrary = true
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        resConfigs "en", "es", "fr", "de", "it", "pt", "ru", "zh-rCN", "ja", "ar"
     }
 
     buildTypes {
@@ -39,11 +40,11 @@ android {
         }
 
         release {
-            multiDexEnabled true
+            multiDexEnabled false
             signingConfig signingConfigs.debug
-            minifyEnabled false
-            shrinkResources false
-            proguardFiles 'proguard-project.txt'
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-project.txt'
             testCoverageEnabled false
         }
     }
@@ -132,7 +133,6 @@ dependencies {
     // html parsing for reading mode
     implementation 'org.jsoup:jsoup:1.13.1'
     implementation 'androidx.cardview:cardview:1.0.0'
-    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
     androidTestImplementation 'androidx.test:rules:1.4.0'
     androidTestImplementation 'androidx.test.espresso:espresso-contrib:3.4.0'
@@ -173,8 +173,6 @@ dependencies {
     // tor proxy
     implementation files('libs/netcipher-webkit-clean.jar')
 
-    implementation 'org.apache.httpcomponents:httpcore:4.4.11'
-
     implementation 'com.anthonycr.progress:animated-progress:1.0'
     // kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion"
@@ -185,14 +183,6 @@ dependencies {
 
     // webview tools
     implementation 'androidx.webkit:webkit:1.4.0'
-
-
-    // onboarding
-    implementation 'com.github.AppIntro:AppIntro:6.0.0'
-
-
-    // code editor
-    implementation 'com.github.ahmadaghazadeh:CodeEditor:1.0.17'
 }
 
 kapt {

@@ -92,7 +92,6 @@ import com.cookiegames.smartcookie.js.DarkReaderHelper
 import com.cookiegames.smartcookie.interpolator.BezierDecelerateInterpolator
 import com.cookiegames.smartcookie.log.Logger
 import com.cookiegames.smartcookie.notifications.IncognitoNotification
-import com.cookiegames.smartcookie.onboarding.Onboarding
 import com.cookiegames.smartcookie.popup.PopUpClass
 import com.cookiegames.smartcookie.search.SearchEngineProvider
 import com.cookiegames.smartcookie.search.SuggestionsAdapter
