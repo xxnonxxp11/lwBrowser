@@ -6,7 +6,7 @@
             android:defaultValue="true"
             android:key="new_window"
             android:singleLineTitle="false"
-            android:title="@string/allow_new_window" />
+            android:title="@string/window" />
         <SwitchPreference
             android:defaultValue="true"
             android:key="cb_javascript"

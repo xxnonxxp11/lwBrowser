@@ -16,7 +16,7 @@
     <androidx.preference.Preference
         android:fragment="com.cookiegames.smartcookie.settings.fragment.TabsSettingsFragment"
         android:icon="@drawable/ic_settings_nav_tabs"
-        android:title="@string/action_tabs"
+        android:title="@string/tabs"
         android:summary="Comportamiento de pestañas, restauración y primer plano" />
 
     <androidx.preference.Preference
