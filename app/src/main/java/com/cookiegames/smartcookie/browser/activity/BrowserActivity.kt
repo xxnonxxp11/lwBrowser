@@ -2963,15 +2963,55 @@ abstract class BrowserActivity : ThemableBrowserActivity(), BrowserView, UIContr
         page3View.findViewById<View>(R.id.btn_via_text_size)?.setOnClickListener {
             dialog.dismiss()
             val layout = layoutInflater.inflate(R.layout.dialog_seek_bar, null)
+            val textPercent = layout.findViewById<TextView>(R.id.text_size_percent)
+            val textSample = layout.findViewById<TextView>(R.id.text_size_sample)
             val seekBar = layout.findViewById<SeekBar>(R.id.text_size_seekbar)
-            seekBar?.progress = userPreferences.textSize
+
+            val originalZoom = userPreferences.getTextZoomPercent()
+            seekBar?.max = 150
+            seekBar?.progress = (originalZoom - 50).coerceIn(0, 150)
+
+            val updateViews = { zoom: Int ->
+                textPercent?.text = if (zoom == 100) "100% (Predeterminado)" else "$zoom%"
+                textSample?.textSize = 15f * (zoom / 100f)
+                currentTab?.webView?.settings?.textZoom = zoom
+            }
+
+            updateViews(originalZoom)
+
+            seekBar?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                    updateViews(progress + 50)
+                }
+                override fun onStartTrackingTouch(sb: SeekBar?) {}
+                override fun onStopTrackingTouch(sb: SeekBar?) {}
+            })
+
+            var applied = false
             MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.title_text_size)
                 .setView(layout)
-                .setPositiveButton(android.R.string.ok) { _, _ ->
-                    seekBar?.progress?.let { p ->
-                        userPreferences.textSize = p
-                        currentTab?.reload()
+                .setPositiveButton(R.string.action_ok) { _, _ ->
+                    applied = true
+                    val finalZoom = (seekBar?.progress ?: 50) + 50
+                    userPreferences.textSize = finalZoom
+                    tabsManager.allTabs.forEach { tab ->
+                        tab.webView?.settings?.textZoom = finalZoom
+                    }
+                    Toast.makeText(this, "Tamaño del texto: $finalZoom%", Toast.LENGTH_SHORT).show()
+                }
+                .setNeutralButton("Restablecer") { _, _ ->
+                    applied = true
+                    userPreferences.textSize = 100
+                    tabsManager.allTabs.forEach { tab ->
+                        tab.webView?.settings?.textZoom = 100
+                    }
+                    Toast.makeText(this, "Tamaño del texto: 100%", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton(R.string.action_cancel) { _, _ -> }
+                .setOnDismissListener {
+                    if (!applied) {
+                        currentTab?.webView?.settings?.textZoom = originalZoom
                     }
                 }
                 .show()

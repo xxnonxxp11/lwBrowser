@@ -162,9 +162,25 @@ class UserPreferences @Inject constructor(
     var textReflowEnabled by preferences.booleanPreference(TEXT_REFLOW, false)
 
     /**
-     * The index of the text size that should be used in the browser.
+     * The text zoom percentage used by the browser (50% to 200%, default 100%).
      */
-    var textSize by preferences.intPreference(TEXT_SIZE, 3)
+    var textSize by preferences.intPreference(TEXT_SIZE, 100)
+
+    fun getTextZoomPercent(): Int {
+        return when (val v = textSize) {
+            0 -> 200
+            1 -> 150
+            2 -> 125
+            3 -> 100
+            4 -> 85
+            5 -> 75
+            6 -> 65
+            7 -> 50
+            in 8..50 -> 100
+            in 51..250 -> v
+            else -> 100
+        }
+    }
 
     /**
      * True if the browser should fit web pages to the view port, false otherwise.

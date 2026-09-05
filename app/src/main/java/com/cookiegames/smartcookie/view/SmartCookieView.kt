@@ -386,17 +386,7 @@ class SmartCookieView(
 
         settings.useWideViewPort = userPreferences.useWideViewPortEnabled
         settings.loadWithOverviewMode = userPreferences.overviewModeEnabled
-        settings.textZoom = when (userPreferences.textSize) {
-            0 -> 200
-            1 -> 150
-            2 -> 125
-            3 -> 100
-            4 -> 75
-            5 -> 50
-            6 -> 25
-            7 -> 20
-            else -> throw IllegalArgumentException("Unsupported text size")
-        }
+        settings.textZoom = userPreferences.getTextZoomPercent()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             CookieManager.getInstance().setAcceptThirdPartyCookies(webView,

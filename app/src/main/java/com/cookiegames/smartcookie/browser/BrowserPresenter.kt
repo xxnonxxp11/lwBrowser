@@ -70,6 +70,14 @@ class BrowserPresenter(
                     view.notifyTabViewInitialized()
                     view.updateTabNumber(tabsModel.size())
                     tabChanged(tabsModel.positionOf(it))
+                },
+                onError = { throwable ->
+                    logger.log(TAG, "Error initializing tabs: ${throwable.message}")
+                    view.notifyTabViewInitialized()
+                    view.updateTabNumber(tabsModel.size())
+                    tabsModel.currentTab?.let { tab ->
+                        tabChanged(tabsModel.positionOf(tab))
+                    }
                 }
             )
 

@@ -102,6 +102,7 @@ class DisplaySettingsFragment : AbstractSettingsFragment() {
         )
 
         // Text size
+        findPreference<Preference>(SETTINGS_TEXTSIZE)?.summary = "${userPreferences.getTextZoomPercent()}%"
         clickablePreference(
             preference = SETTINGS_TEXTSIZE,
             onClick = ::showTextSizePicker
@@ -203,48 +204,44 @@ class DisplaySettingsFragment : AbstractSettingsFragment() {
     }
 
     private fun showTextSizePicker() {
-        val maxValue = 7
-        MaterialAlertDialogBuilder(requireContext()).apply {
-            val layoutInflater = activity?.layoutInflater
-            val customView = (layoutInflater?.inflate(R.layout.dialog_seek_bar, null) as LinearLayout).apply {
-                val text = TextView(activity).apply {
-                    setText(R.string.untitled)
-                    layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT)
-                    gravity = Gravity.CENTER_HORIZONTAL
-                }
-                addView(text)
-                val size = TextView(activity).apply {
-                    setText(R.string.untitled)
-                    layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT)
-                    gravity = Gravity.CENTER_HORIZONTAL
-                }
-                addView(size)
+        val customView = layoutInflater.inflate(R.layout.dialog_seek_bar, null)
+        val textPercent = customView.findViewById<TextView>(R.id.text_size_percent)
+        val textSample = customView.findViewById<TextView>(R.id.text_size_sample)
+        val seekBar = customView.findViewById<SeekBar>(R.id.text_size_seekbar)
 
-                findViewById<SeekBar>(R.id.text_size_seekbar).apply {
-                    setOnSeekBarChangeListener(TextSeekBarListener(text, size))
-                    max = maxValue
-                    progress = maxValue - userPreferences.textSize
-                }
-            }
-            setView(customView)
-            setTitle(R.string.title_text_size)
-            setPositiveButton(android.R.string.ok) { _, _ ->
-                val seekBar = customView.findViewById<SeekBar>(R.id.text_size_seekbar)
-                userPreferences.textSize = maxValue - seekBar.progress
-            }
-        }.resizeAndShow()
-    }
+        val currentZoom = userPreferences.getTextZoomPercent()
+        seekBar.max = 150
+        seekBar.progress = (currentZoom - 50).coerceIn(0, 150)
 
-    private class TextSeekBarListener(
-        private val sampleText: TextView,
-        private val sizeText: TextView
-    ) : SeekBar.OnSeekBarChangeListener {
-        override fun onProgressChanged(view: SeekBar, size: Int, user: Boolean) {
-            this.sampleText.textSize = getTextSize(size)
-            this.sizeText.text = (size * 15 + 40).toString() + "%"
+        val updateViews = { zoom: Int ->
+            textPercent.text = if (zoom == 100) "100% (Predeterminado)" else "$zoom%"
+            textSample.textSize = 15f * (zoom / 100f)
         }
-        override fun onStartTrackingTouch(arg0: SeekBar) {}
-        override fun onStopTrackingTouch(arg0: SeekBar) {}
+
+        updateViews(currentZoom)
+
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                updateViews(progress + 50)
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.title_text_size)
+            .setView(customView)
+            .setPositiveButton(R.string.action_ok) { _, _ ->
+                val zoom = seekBar.progress + 50
+                userPreferences.textSize = zoom
+                findPreference<Preference>(SETTINGS_TEXTSIZE)?.summary = "$zoom%"
+            }
+            .setNeutralButton("Restablecer") { _, _ ->
+                userPreferences.textSize = 100
+                findPreference<Preference>(SETTINGS_TEXTSIZE)?.summary = "100%"
+            }
+            .setNegativeButton(R.string.action_cancel, null)
+            .resizeAndShow()
     }
 
     companion object {
@@ -260,17 +257,5 @@ class DisplaySettingsFragment : AbstractSettingsFragment() {
         private const val SETTINGS_VIEWPORT = "wideViewPort"
         private const val SETTINGS_OVERVIEWMODE = "overViewMode"
         private const val SETTINGS_FORCE_ZOOM = "force_zoom"
-
-        private fun getTextSize(size: Int): Float = when (size) {
-            0 -> 10f
-            1 -> 12f
-            2 -> 14f
-            3 -> 16f
-            4 -> 18f
-            5 -> 20f
-            6 -> 22f
-            7 -> 24f
-            else -> 16f
-        }
     }
 }
