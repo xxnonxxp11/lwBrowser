@@ -1,0 +1,15 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:tint="?attr/iconColor"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Distinctive aerodynamic swept chevron right -->
+    <path
+        android:strokeWidth="1.8"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M8,5.2 C10.2,7.8 13.2,10.4 15.8,12 C13.2,13.6 10.2,16.2 8,18.8" />
+</vector>
