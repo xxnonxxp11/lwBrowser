@@ -2846,7 +2846,7 @@ abstract class BrowserActivity : ThemableBrowserActivity(), BrowserView, UIContr
 
     private fun installWebAppShortcut(url: String, title: String, icon: Bitmap) {
         val webappIntent = Intent(this, WebappActivity::class.java).apply {
-            action = "com.yload.browser.webapp.ACTION_OPEN_WEBAPP"
+            action = "com.lw.browser.webapp.ACTION_OPEN_WEBAPP"
             data = Uri.parse(url)
             putExtra(WebappActivity.EXTRA_URL, url)
             putExtra(WebappActivity.EXTRA_TITLE, title)

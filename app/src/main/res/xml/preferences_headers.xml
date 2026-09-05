@@ -6,8 +6,7 @@
         android:icon="@drawable/ic_settings_general_layers"
         android:title="@string/settings_general"
         android:singleLineTitle="false"
-        android:summary="@string/settings_general_explain"
-        android:tint="#8e4f00"/>
+        android:summary="@string/settings_general_explain"/>
     <androidx.preference.Preference
         android:fragment="com.cookiegames.smartcookie.settings.fragment.ExportSettingsFragment"
         android:icon="@drawable/ic_settings_import_export_layers"
@@ -19,8 +18,7 @@
         android:icon="@drawable/ic_settings_customize_layers"
         android:singleLineTitle="false"
         android:title="@string/customize"
-        android:summary="@string/settings_display_explain"
-        android:tint="#8e4f00"/>
+        android:summary="@string/settings_display_explain"/>
     <androidx.preference.Preference
         android:fragment="com.cookiegames.smartcookie.settings.fragment.PrivacySettingsFragment"
         android:icon="@drawable/ic_settings_shield_layers"

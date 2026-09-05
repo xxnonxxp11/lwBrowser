@@ -296,9 +296,9 @@
     <string name="message_open_download_fail">This file doesn\'t exist anymore</string>
     <string name="this_project">This Project</string>
 
-    <string name="scw">yLoad Source Code</string>
+    <string name="scw">lw Browser Source Code</string>
     <string name="action_home">Home</string>
-    <string name="description">Learn about yLoad</string>
+    <string name="description">Learn about lw Browser</string>
     <string name="url_contact" translatable="false">www.cookiegames.co.uk/</string>
 
     <string name="faq">FAQ</string>
@@ -387,8 +387,8 @@
     <string name="search_engine_searx_cookiejarapps">SearX</string>
 
     <string name="privacy">View Privacy Policy</string>
-    <string name="privacy_info">Read the yLoad privacy policy</string>
-    <string name="url_project" translatable="false">https://github.com/xxnonxxp11/yLoad</string>
+    <string name="privacy_info">Read the lw Browser privacy policy</string>
+    <string name="url_project" translatable="false">https://github.com/xxnonxxp11/lwBrowser</string>
     <string name="block_malware">Block malicious sites</string>
     <string name="block_sites">Custom site block</string>
     <string name="block_sites_title">Custom site block (separate sites with a comma)</string>
@@ -478,7 +478,7 @@
     <string name="dark_mode">Dark mode</string>
     <string name="submit">Submit extension</string>
 
-    <string name="submit_link" translatable="false">https://github.com/xxnonxxp11/yLoad/issues</string>
+    <string name="submit_link" translatable="false">https://github.com/xxnonxxp11/lwBrowser/issues</string>
 
     <string name="translator">Translator (beta)</string>
     <string name="coming_soon">More coming soon...</string>
@@ -506,7 +506,7 @@
     <string name="listed_javascript">Only allow JavaScript for listed sites</string>
 
     <string name="confirm">Confirm reset</string>
-    <string name="clear">This will clear all the data stored by yLoad on your device</string>
+    <string name="clear">This will clear all the data stored by lw Browser on your device</string>
 
     <string name="only_clear">Only clear on browser session end</string>
     <string name="only_clear_summary">Only clear above options when all browser tabs have been closed, instead of whenever the app is exited</string>
@@ -536,7 +536,7 @@
     <string name="download_to_sd">Download to SD card</string>
 
     <string name="legacy_download_manager">Use integrated download manager</string>
-    <string name="legacy_download_manager_desc">Download files using the yLoad download manager, instead of the system one</string>
+    <string name="legacy_download_manager_desc">Download files using the lw Browser download manager, instead of the system one</string>
 
     <string name="onboarding_one">Access settings, bookmarks (or swipe from the right edge) and more in the overflow menu.</string>
     <string name="onboarding_two">Click the tab number or swipe from the left edge to open the tab drawer.</string>
@@ -646,7 +646,7 @@
     <string name="stack_items_reverse">Stack items from bottom of drawer</string>
 
     <string name="forgot_password">Forgot password</string>
-    <string name="recover_app_lock">Please visit <a href="https://github.com/xxnonxxp11/yLoad/recover.php">github.com/xxnonxxp11/yLoad/recover.php</a> in another browser to recover your app lock password.</string>
+    <string name="recover_app_lock">Please visit <a href="https://github.com/xxnonxxp11/lwBrowser/recover.php">github.com/xxnonxxp11/lwBrowser/recover.php</a> in another browser to recover your app lock password.</string>
     <string name="error">Error</string>
     <string name="save_file_success">File saved successfully</string>
     <!-- finish pages -->

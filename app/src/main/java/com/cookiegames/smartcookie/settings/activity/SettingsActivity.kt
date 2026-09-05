@@ -25,11 +25,13 @@ class SettingsActivity : AppCompatActivity(),
     @Inject
     internal lateinit var userPreferences: UserPreferences
 
+    private var currentTheme: AppTheme = AppTheme.LIGHT
+
     override fun onCreate(savedInstanceState: Bundle?) {
         injector.inject(this)
 
-        // set the theme
-        when (userPreferences.useTheme) {
+        currentTheme = userPreferences.useTheme
+        when (currentTheme) {
             AppTheme.LIGHT -> {
                 setTheme(R.style.Theme_SettingsTheme)
             }
@@ -50,7 +52,7 @@ class SettingsActivity : AppCompatActivity(),
             setSupportActionBar(toolbar)
             val actionBar: ActionBar? = supportActionBar
             if (actionBar != null) {
-                actionBar.setDisplayShowTitleEnabled(false)
+                actionBar.setDisplayShowTitleEnabled(true)
                 actionBar.setDisplayHomeAsUpEnabled(true)
                 actionBar.setDisplayShowHomeEnabled(true)
             }
@@ -59,32 +61,37 @@ class SettingsActivity : AppCompatActivity(),
         }
 
         if (savedInstanceState == null) {
-            toolbar.title = getString(R.string.settings)
+            title = getString(R.string.settings)
             supportFragmentManager.beginTransaction()
                 .replace(R.id.container, SettingsFragment())
                 .commit()
         } else {
-            toolbar.title = savedInstanceState.getCharSequence(TITLE_TAG, getString(R.string.settings))
+            title = savedInstanceState.getCharSequence(TITLE_TAG, getString(R.string.settings))
         }
 
         supportFragmentManager.addOnBackStackChangedListener {
             val count = supportFragmentManager.backStackEntryCount
             if (count == 0) {
-                toolbar.title = getString(R.string.settings)
+                title = getString(R.string.settings)
             } else {
                 val entry = supportFragmentManager.getBackStackEntryAt(count - 1)
-                entry.name?.let { toolbar.title = it }
+                entry.name?.let { title = it }
             }
         }
 
         overridePendingTransition(R.anim.slide_in_from_right, R.anim.fade_out_scale)
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (userPreferences.useTheme != currentTheme) {
+            recreate()
+        }
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        findViewById<Toolbar>(R.id.toolbar)?.let {
-            outState.putCharSequence(TITLE_TAG, it.title)
-        }
+        outState.putCharSequence(TITLE_TAG, title)
     }
 
     override fun onPreferenceStartFragment(
@@ -110,7 +117,7 @@ class SettingsActivity : AppCompatActivity(),
             .commit()
 
         pref.title?.let {
-            findViewById<Toolbar>(R.id.toolbar)?.title = it
+            title = it
         }
         return true
     }

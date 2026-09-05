@@ -10,10 +10,14 @@
 -keep public class * extends android.content.BroadcastReceiver
 -keep public class * extends android.content.ContentProvider
 -keep public class * extends android.app.backup.BackupAgentHelper
--keep public class * extends android.preference.Preference
--keep public class com.cookiegames.smartcookie.settings.*
--keep public class com.cookiegames.smartcookie.settings.fragment.*
--keep public class com.cookiegames.smartcookie.reading.*
+-keep public class * extends androidx.preference.Preference
+-keep public class * extends androidx.preference.PreferenceFragmentCompat {
+    public <init>();
+}
+-keep public class com.cookiegames.smartcookie.settings.fragment.* extends androidx.fragment.app.Fragment {
+    public <init>();
+}
+-keep public class com.cookiegames.smartcookie.reading.** { *; }
 
 -assumenosideeffects class android.util.Log {
     public static *** d(...);
@@ -22,11 +26,6 @@
     public static *** i(...);
 }
 
--keepclassmembers class **.R$* {
-    public static <fields>;
-}
-
--keep class **.R$* { *; }
 # this will fix a force close in ReadingActivity
 -keep public class org.jsoup.** {
     public *;
@@ -121,7 +120,7 @@
 
 # RxJava & RxAndroid
 -dontwarn io.reactivex.**
--keepclassmembers class io.reactivex.** { *; }
+-dontwarn java.util.concurrent.Flow*
 
 # Kotlin & Coroutines
 -dontwarn kotlin.**

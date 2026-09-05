@@ -1010,7 +1010,7 @@ class SmartCookieWebClient(
         shouldOverrideLoading(view, url) || super.shouldOverrideUrlLoading(view, url)
 
     private fun shouldOverrideLoading(view: WebView, url: String): Boolean {
-        if (url.startsWith("yload://save_shortcuts")) {
+        if (url.startsWith("lw://save_shortcuts") || url.startsWith("yload://save_shortcuts")) {
             val uri = Uri.parse(url)
             uri.getQueryParameter("link1")?.let { if (it.isNotBlank()) userPreferences.link1 = it }
             uri.getQueryParameter("link2")?.let { if (it.isNotBlank()) userPreferences.link2 = it }
@@ -1022,7 +1022,7 @@ class SmartCookieWebClient(
             return true
         }
 
-        if (url.startsWith("yload://search")) {
+        if (url.startsWith("lw://search") || url.startsWith("yload://search")) {
             val uri = Uri.parse(url)
             val query = uri.getQueryParameter("q") ?: ""
             activity.runOnUiThread {

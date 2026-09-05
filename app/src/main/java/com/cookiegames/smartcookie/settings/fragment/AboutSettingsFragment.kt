@@ -40,17 +40,17 @@ class AboutSettingsFragment : AbstractSettingsFragment() {
         )
 
         val aboutPref: androidx.preference.Preference? = findPreference(SETTINGS_VERSION)
-        aboutPref!!.setOnPreferenceClickListener {
+        aboutPref?.setOnPreferenceClickListener {
             val builder = MaterialAlertDialogBuilder(requireContext())
-            builder.setTitle("yLoad v" + BuildConfig.VERSION_NAME)
-            builder.setMessage("yLoad Browser - Rápido, ligero y seguro")
+            builder.setTitle("lw v" + BuildConfig.VERSION_NAME)
+            builder.setMessage("lw Browser - Ultraligero, rápido y seguro")
 
-
-            builder.setPositiveButton(resources.getString(R.string.action_ok)){ dialogInterface, which ->
-
+            builder.setPositiveButton(resources.getString(R.string.action_ok)) { dialogInterface, _ ->
+                dialogInterface.dismiss()
             }
             val alertDialog: AlertDialog = builder.create()
-            alertDialog.setCancelable(false)
+            alertDialog.setCancelable(true)
+            alertDialog.setCanceledOnTouchOutside(true)
             alertDialog.show()
             true
         }

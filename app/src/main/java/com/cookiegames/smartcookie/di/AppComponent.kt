@@ -12,7 +12,6 @@ import com.cookiegames.smartcookie.dialog.LightningDialogBuilder
 import com.cookiegames.smartcookie.download.LightningDownloadListener
 import com.cookiegames.smartcookie.search.SuggestionsAdapter
 import com.cookiegames.smartcookie.settings.activity.SettingsActivity
-import com.cookiegames.smartcookie.settings.activity.ThemableSettingsActivity
 import com.cookiegames.smartcookie.settings.fragment.*
 import com.cookiegames.smartcookie.view.SmartCookieChromeClient
 import com.cookiegames.smartcookie.view.SmartCookieView
@@ -63,13 +62,9 @@ interface AppComponent {
 
     fun inject(activity: SettingsActivity)
 
-    fun inject(activity: ThemableSettingsActivity)
-
     fun inject(listener: LightningDownloadListener)
 
     fun inject(fragment: PrivacySettingsFragment)
-
-    fun inject(fragment: DebugSettingsFragment)
 
     fun inject(fragment: ExtensionsSettingsFragment)
 

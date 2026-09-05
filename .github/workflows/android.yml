@@ -24,6 +24,10 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
+    - name: Generate Release Keystore
+      run: |
+        keytool -genkey -v -keystore app/release.keystore -alias lwbrowser -keyalg RSA -keysize 2048 -validity 10000 -storepass lwbrowser_release -keypass lwbrowser_release -dname "CN=lwBrowser Release, OU=Mobile, O=lw, L=Global, ST=World, C=US"
+
     - name: Build Release APK with Gradle
       run: ./gradlew assembleStableRelease --no-daemon --stacktrace
 

@@ -197,7 +197,7 @@
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard"
             android:label="@string/settings"
             android:launchMode="singleTop"
-            android:theme="@style/Theme.LightTheme"
+            android:theme="@style/Theme.SettingsTheme"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.SETTINGS" />
@@ -217,6 +217,7 @@
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
+                <action android:name="com.lw.browser.webapp.ACTION_OPEN_WEBAPP" />
                 <action android:name="com.yload.browser.webapp.ACTION_OPEN_WEBAPP" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:scheme="http" />
