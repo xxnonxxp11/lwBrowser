@@ -317,6 +317,10 @@ class HistoryActivity : AppCompatActivity() {
         btnDeleteSelected.alpha = if (selectedUrls.isNotEmpty()) 1.0f else 0.4f
     }
 
+    fun dataChanged() {
+        loadHistory()
+    }
+
     private fun loadHistory() {
         compositeDisposable.add(
             historyRepository
