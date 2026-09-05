@@ -9,6 +9,7 @@
     <color name="gray">#333333</color>
 
     <color name="primary_color">#FFFFFF</color>
+    <color name="textDarkPrimary">#de000000</color>
 
     <color name="cookie_dark">#8d4e00</color>
     <color name="cookie_light">#C88C36</color>
