@@ -98,10 +98,6 @@
         <item name="selectedBackground">@color/selected_dark</item>
         <item name="bottomBarBackground">@drawable/bottom_bar_bg_dark</item>
         <item name="colorSurface">@color/black</item>
-        <item name="colorSurfaceContainer">#E6020204</item>
-        <item name="colorSurfaceContainerLow">#E6020204</item>
-        <item name="colorSurfaceContainerHigh">#E6020204</item>
-        <item name="colorSurfaceContainerHighest">#E6020204</item>
 
         <item name="windowNoTitle">true</item>
         <item name="windowActionBar">false</item>
@@ -135,10 +131,6 @@
         <item name="selectedBackground">@color/selected_dark</item>
         <item name="bottomBarBackground">@drawable/bottom_bar_bg_black</item>
         <item name="colorSurface">@color/black</item>
-        <item name="colorSurfaceContainer">#E6000000</item>
-        <item name="colorSurfaceContainerLow">#E6000000</item>
-        <item name="colorSurfaceContainerHigh">#E6000000</item>
-        <item name="colorSurfaceContainerHighest">#E6000000</item>
 
         <item name="windowNoTitle">true</item>
         <item name="windowActionBar">false</item>
