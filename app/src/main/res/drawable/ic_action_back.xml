@@ -4,12 +4,13 @@
     android:tint="?attr/iconColor"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Distinctive aerodynamic swept chevron left -->
+    <!-- Sleek modern rounded chevron back -->
     <path
         android:strokeWidth="1.8"
         android:strokeColor="#FFFFFF"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:fillColor="#00000000"
-        android:pathData="M16,5.2 C13.8,7.8 10.8,10.4 8.2,12 C10.8,13.6 13.8,16.2 16,18.8" />
+        android:pathData="M15.5,5.5 L8.5,12 L15.5,18.5" />
 </vector>
+
