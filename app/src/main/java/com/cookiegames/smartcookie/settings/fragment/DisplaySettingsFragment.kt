@@ -22,6 +22,7 @@ import com.cookiegames.smartcookie.extensions.withSingleChoiceItems
 import com.cookiegames.smartcookie.preference.UserPreferences
 import com.flask.colorpicker.ColorPickerView
 import com.flask.colorpicker.builder.ColorPickerDialogBuilder
+import androidx.preference.Preference
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import javax.inject.Inject
 
