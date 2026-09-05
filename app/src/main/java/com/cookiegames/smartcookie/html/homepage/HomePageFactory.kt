@@ -164,21 +164,21 @@ class HomePageFactory @Inject constructor(
         if (host.isEmpty()) return ""
         val cleanHost = host.replaceFirst("www.", "").toLowerCase(Locale.ROOT)
 
-        // 1. Check local persistent disk cache
+        // 1. Check bundled assets in shortcut_favicons (curated, official 128x128 icons)
         try {
-            val cacheDir = File(application.filesDir, "shortcut_cache").apply { mkdirs() }
-            val cacheFile = File(cacheDir, "$cleanHost.png")
-            if (cacheFile.exists() && cacheFile.length() > 0) {
-                val bytes = cacheFile.readBytes()
+            application.assets.open("shortcut_favicons/$cleanHost.png").use { stream ->
+                val bytes = stream.readBytes()
                 val encoded = Base64.encodeToString(bytes, Base64.NO_WRAP)
                 return "data:image/png;base64,$encoded"
             }
         } catch (e: Exception) {}
 
-        // 2. Check bundled assets in shortcut_favicons
+        // 2. Check local persistent disk cache
         try {
-            application.assets.open("shortcut_favicons/$cleanHost.png").use { stream ->
-                val bytes = stream.readBytes()
+            val cacheDir = File(application.filesDir, "shortcut_cache").apply { mkdirs() }
+            val cacheFile = File(cacheDir, "$cleanHost.png")
+            if (cacheFile.exists() && cacheFile.length() > 0) {
+                val bytes = cacheFile.readBytes()
                 val encoded = Base64.encodeToString(bytes, Base64.NO_WRAP)
                 return "data:image/png;base64,$encoded"
             }

@@ -12,6 +12,7 @@
     <attr name="drawerBackground" format="reference|color" />
     <attr name="dividerColor" format="reference|color" />
     <attr name="selectedBackground" format="reference|color" />
+    <attr name="bottomBarBackground" format="reference|color" />
 
 
     <declare-styleable name="TabCountView">

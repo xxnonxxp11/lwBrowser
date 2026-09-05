@@ -152,7 +152,7 @@
         android:baselineAligned="false"
         android:weightSum="5">
         <LinearLayout
-            android:id="@+id/btn_via_clear_data"
+            android:id="@+id/btn_via_copy_link"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -162,23 +162,23 @@
             android:clickable="true"
             android:focusable="true">
             <androidx.appcompat.widget.AppCompatImageView
-                android:id="@+id/icon_via_clear_data"
+                android:id="@+id/icon_via_copy_link"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@drawable/ic_delete_all" />
+                android:src="@drawable/ic_content_copy_black" />
             <TextView
-                android:id="@+id/text_via_clear_data"
+                android:id="@+id/text_via_copy_link"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Borrar datos"
+                android:text="Copiar enlace"
                 android:textSize="11sp"
                 android:gravity="center"
                 android:maxLines="2"
                 android:ellipsize="end" />
         </LinearLayout>
         <LinearLayout
-            android:id="@+id/btn_via_customize_menu"
+            android:id="@+id/btn_via_open_in_app"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -188,33 +188,99 @@
             android:clickable="true"
             android:focusable="true">
             <androidx.appcompat.widget.AppCompatImageView
-                android:id="@+id/icon_via_customize_menu"
+                android:id="@+id/icon_via_open_in_app"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@drawable/ic_via_customize_grid" />
+                android:src="@drawable/ic_round_open_in_new" />
             <TextView
-                android:id="@+id/text_via_customize_menu"
+                android:id="@+id/text_via_open_in_app"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Personalizar menú"
+                android:text="Abrir en app"
                 android:textSize="11sp"
                 android:gravity="center"
                 android:maxLines="2"
                 android:ellipsize="end" />
         </LinearLayout>
-        <View
+        <LinearLayout
+            android:id="@+id/btn_via_print"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1" />
-        <View
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true">
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/icon_via_print"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_round_print" />
+            <TextView
+                android:id="@+id/text_via_print"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Imprimir / PDF"
+                android:textSize="11sp"
+                android:gravity="center"
+                android:maxLines="2"
+                android:ellipsize="end" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/btn_via_save_page"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1" />
-        <View
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true">
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/icon_via_save_page"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_file_download_black" />
+            <TextView
+                android:id="@+id/text_via_save_page"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Guardar página"
+                android:textSize="11sp"
+                android:gravity="center"
+                android:maxLines="2"
+                android:ellipsize="end" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/btn_via_reading_mode"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true">
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/icon_via_reading_mode"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_action_reading" />
+            <TextView
+                android:id="@+id/text_via_reading_mode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Modo lectura"
+                android:textSize="11sp"
+                android:gravity="center"
+                android:maxLines="2"
+                android:ellipsize="end" />
+        </LinearLayout>
     </LinearLayout>
 
 </LinearLayout>

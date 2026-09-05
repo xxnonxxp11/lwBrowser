@@ -98,8 +98,6 @@ class BrowserApp : Application() {
                 MemoryLeakUtils.clearNextServedView(activity, this@BrowserApp)
             }
         })
-
-        DynamicColors.applyToActivitiesIfAvailable(this)
     }
 
     /**

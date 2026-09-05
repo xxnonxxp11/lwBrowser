@@ -48,6 +48,7 @@ import com.cookiegames.smartcookie.utils.ProxyUtils
 import com.cookiegames.smartcookie.utils.Utils
 import com.cookiegames.smartcookie.utils.Utils.buildErrorPage
 import com.cookiegames.smartcookie.utils.isSpecialUrl
+import com.cookiegames.smartcookie.utils.isHomeUrl
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.reactivex.Observable
 import io.reactivex.Scheduler
@@ -871,7 +872,10 @@ class SmartCookieWebClient(
     override fun onReceivedError(webview: WebView, errorCode: Int, error: String, failingUrl: String) {
         if(errorCode != -1) {
             errored = true
-            Thread.sleep(500)
+            if (failingUrl.isHomeUrl()) {
+                smartCookieView.loadHomePage()
+                return
+            }
             webview.settings.javaScriptEnabled = true
             if (userPreferences.useTheme == AppTheme.LIGHT) {
                 color = ""
@@ -879,7 +883,6 @@ class SmartCookieWebClient(
             val reloadCode = "window.location.href = '" + failingUrl + "';"
             val title = activity.getString(R.string.error_title)
             val reload = activity.getString(R.string.error_reload)
-            webview.loadUrl("about:blank")
             webview.loadDataWithBaseURL(failingUrl, buildErrorPage(color, title, error, reload, true, reloadCode), "text/html", "UTF-8", null)
             uiController.updateUrl(failingUrl, false)
             currentUrl = failingUrl

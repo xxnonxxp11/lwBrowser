@@ -16,6 +16,8 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import java.io.File
 import android.os.Handler
 import android.os.Message
 import android.preference.PreferenceManager
@@ -301,8 +303,6 @@ abstract class BrowserActivity : ThemableBrowserActivity(), BrowserView, UIContr
         } else {
             setContentView(R.layout.activity_main)
         }
-
-        DynamicColors.applyIfAvailable(this)
 
         ButterKnife.bind(this)
 
@@ -869,8 +869,18 @@ abstract class BrowserActivity : ThemableBrowserActivity(), BrowserView, UIContr
 
     public override fun onWindowVisibleToUserAfterResume() {
         super.onWindowVisibleToUserAfterResume()
-        toolbar_layout.translationY = 0f
-        setWebViewTranslation(toolbar_layout.height.toFloat())
+        val currentUrl = tabsManager.currentTab?.url
+        updateTopBarVisibilityForUrl(currentUrl)
+        if (currentUrl.isHomeUrl()) {
+            findViewById<View>(R.id.toolbar_layout)?.visibility = View.GONE
+            findViewById<View>(R.id.toolbar)?.visibility = View.GONE
+            searchBackground?.visibility = View.GONE
+            toolbar_layout.translationY = 0f
+            setWebViewTranslation(0f)
+        } else {
+            toolbar_layout.translationY = 0f
+            setWebViewTranslation(toolbar_layout.height.toFloat())
+        }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -1516,6 +1526,16 @@ abstract class BrowserActivity : ThemableBrowserActivity(), BrowserView, UIContr
 
         changeToolbarColor(null)
 
+        val currentUrl = tabsManager.currentTab?.url
+        updateTopBarVisibilityForUrl(currentUrl)
+        if (currentUrl.isHomeUrl()) {
+            findViewById<View>(R.id.toolbar_layout)?.visibility = View.GONE
+            findViewById<View>(R.id.toolbar)?.visibility = View.GONE
+            searchBackground?.visibility = View.GONE
+            toolbar_layout.translationY = 0f
+            setWebViewTranslation(0f)
+        }
+
         if(!isIncognito() && !userPreferences.onlyForceClose){
             performExitCleanUp()
         }
@@ -1566,14 +1586,15 @@ abstract class BrowserActivity : ThemableBrowserActivity(), BrowserView, UIContr
 
         } //Reset theme without needing a restart
         else if(userPreferences.navbarColChoice == ChooseNavbarCol.NONE){
-            var currentColor = Color.WHITE
+            val isDark = userPreferences.useTheme == AppTheme.DARK || userPreferences.useTheme == AppTheme.BLACK || isIncognito()
+            var currentColor = if (isDark) ContextCompat.getColor(this, R.color.black) else ContextCompat.getColor(this, R.color.primary_color)
             if(userPreferences.useTheme == AppTheme.LIGHT && !isIncognito()){
                 currentColor = ContextCompat.getColor(this, R.color.primary_color)
             }
-            else if(userPreferences.useTheme == AppTheme.DARK || isIncognito()){
+            else if(userPreferences.useTheme == AppTheme.DARK){
                 currentColor = ContextCompat.getColor(this, R.color.primary_color_dark)
             }
-            else{
+            else if(userPreferences.useTheme == AppTheme.BLACK || isIncognito()){
                 currentColor = ContextCompat.getColor(this, R.color.black)
             }
             changeToolbarBackground(null, null)
@@ -2783,25 +2804,123 @@ abstract class BrowserActivity : ThemableBrowserActivity(), BrowserView, UIContr
                 .show()
         }
 
-        page3View.findViewById<View>(R.id.btn_via_clear_data)?.setOnClickListener {
+        page3View.findViewById<View>(R.id.btn_via_copy_link)?.setOnClickListener {
             dialog.dismiss()
-            MaterialAlertDialogBuilder(this)
-                .setTitle("Borrar datos")
-                .setMessage("¿Deseas borrar la caché, historial y cookies de navegación?")
-                .setPositiveButton("Borrar") { _, _ ->
-                    currentTab?.webView?.let { WebUtils.clearCache(it, applicationContext) }
-                    WebUtils.clearCookies(this)
-                    Toast.makeText(this, "Datos de navegación borrados", Toast.LENGTH_SHORT).show()
+            currentTab?.let { tab ->
+                val url = tab.url
+                if (url.isNotBlank() && !url.isSpecialUrl()) {
+                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = ClipData.newPlainText("URL", url)
+                    clipboard.setPrimaryClip(clip)
+                    Toast.makeText(this, "Enlace copiado al portapapeles", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "No hay enlace para copiar", Toast.LENGTH_SHORT).show()
                 }
-                .setNegativeButton("Cancelar", null)
-                .show()
+            }
         }
 
-        page3View.findViewById<View>(R.id.btn_via_customize_menu)?.setOnClickListener {
+        page3View.findViewById<View>(R.id.btn_via_open_in_app)?.setOnClickListener {
             dialog.dismiss()
-            startActivity(Intent(this, SettingsActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-            })
+            currentTab?.let { tab ->
+                val url = tab.url
+                if (url.isNotBlank() && !url.isSpecialUrl()) {
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        val chooser = Intent.createChooser(intent, "Abrir con...")
+                        startActivity(chooser)
+                    } catch (e: Exception) {
+                        Toast.makeText(this, "No se puede abrir en otra aplicación", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    Toast.makeText(this, "Página no compatible para abrir externamente", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        page3View.findViewById<View>(R.id.btn_via_print)?.setOnClickListener {
+            dialog.dismiss()
+            currentTab?.let { tab ->
+                tab.webView?.let { wv ->
+                    tab.createWebPagePrint(wv)
+                } ?: Toast.makeText(this, "No se puede imprimir esta página", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        page3View.findViewById<View>(R.id.btn_via_save_page)?.setOnClickListener {
+            dialog.dismiss()
+            currentTab?.let { tab ->
+                val url = tab.url
+                if (url.isBlank() || url.isSpecialUrl()) {
+                    Toast.makeText(this, "No se puede guardar esta página", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                tab.webView?.evaluateJavascript(
+                    """(function() {
+                        var baseTag = document.querySelector('base');
+                        var baseHref = baseTag ? baseTag.href : window.location.href;
+                        var head = document.head ? document.head.innerHTML : '';
+                        if (!baseTag) {
+                            head = '<base href="' + baseHref + '">' + head;
+                        }
+                        var body = document.body ? document.body.innerHTML : '';
+                        return '<!DOCTYPE html><html><head>' + head + '</head><body>' + body + '</body></html>';
+                    })()"""
+                ) { rawJson ->
+                    if (rawJson != null && rawJson != "null") {
+                        try {
+                            val html = org.json.JSONObject("{\"html\": $rawJson}").getString("html")
+                            val cleanTitle = (tab.title?.takeIf { it.isNotBlank() } ?: "pagina")
+                                .replace(Regex("[^a-zA-Z0-9._\\- ]"), "_")
+                                .take(40)
+                            val filename = "${cleanTitle}_${System.currentTimeMillis()}.html"
+                            val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                            if (!downloadDir.exists()) downloadDir.mkdirs()
+                            val destFile = File(downloadDir, filename)
+                            destFile.writeText(html, Charsets.UTF_8)
+                            Toast.makeText(this, "Guardado en Descargas: $filename", Toast.LENGTH_LONG).show()
+                        } catch (e: Exception) {
+                            Toast.makeText(this, "Error al guardar página: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        Toast.makeText(this, "No se pudo obtener el contenido", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+
+        page3View.findViewById<View>(R.id.btn_via_reading_mode)?.setOnClickListener {
+            dialog.dismiss()
+            currentTab?.let { tab ->
+                val url = tab.url
+                if (url.isBlank() || url.isSpecialUrl()) {
+                    Toast.makeText(this, "Modo lectura no disponible para esta página", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                val readerJs = """
+                    (function() {
+                        if (window.__lw_reader_active) {
+                            if (window.__lw_orig_html) {
+                                document.documentElement.innerHTML = window.__lw_orig_html;
+                                window.__lw_reader_active = false;
+                            } else {
+                                location.reload();
+                            }
+                            return;
+                        }
+                        window.__lw_orig_html = document.documentElement.innerHTML;
+                        window.__lw_reader_active = true;
+                        var title = document.title || '';
+                        var article = document.querySelector('article') || document.querySelector('main') || document.querySelector('.post-content') || document.querySelector('.article-content') || document.querySelector('#content');
+                        var content = article ? article.innerHTML : document.body.innerHTML;
+                        var bg = '#121214';
+                        var textCol = '#E2E8F0';
+                        document.head.innerHTML = '<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>' + title + '</title><style>body { background-color: ' + bg + ' !important; color: ' + textCol + ' !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important; font-size: 19px !important; line-height: 1.75 !important; padding: 24px 20px 80px 20px !important; max-width: 720px !important; margin: 0 auto !important; } h1, h2, h3 { color: #FFFFFF !important; line-height: 1.3 !important; } a { color: #5C87F7 !important; } img { max-width: 100% !important; height: auto !important; border-radius: 8px !important; margin: 16px 0 !important; } pre, code { background: #1E1F24 !important; color: #79C0FF !important; padding: 8px 12px !important; border-radius: 6px !important; overflow-x: auto !important; } nav, footer, header, aside, .sidebar, .ads, .ad, .social-share, .comments { display: none !important; }</style>';
+                        document.body.innerHTML = '<h1>' + title + '</h1><hr style="border: none; border-top: 1px solid #2B2E38; margin: 20px 0 24px 0;">' + content;
+                    })();
+                """.trimIndent()
+                tab.webView?.evaluateJavascript(readerJs, null)
+                Toast.makeText(this, "Modo lectura activado", Toast.LENGTH_SHORT).show()
+            }
         }
 
         // ================= BOTTOM BAR ACTIONS =================
@@ -2892,6 +3011,10 @@ abstract class BrowserActivity : ThemableBrowserActivity(), BrowserView, UIContr
             }
         }
         searchBackground?.visibility = targetVis
+        if (isHome) {
+            toolbar_layout.translationY = 0f
+            setWebViewTranslation(0f)
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val decorView = window.decorView
