@@ -266,9 +266,7 @@ abstract class BrowserActivity : ThemableBrowserActivity(), BrowserView, UIContr
     private var bookmarksView: BookmarksView? = null
 
     // Bottom Sheet Tabs UI
-    private var tabsBottomSheetLayout: View? = null
-    private var tabsBottomSheetScrim: View? = null
-    private var tabsBottomSheetRecycler: RecyclerView? = null
+    private var tabsDialog: BottomSheetDialog? = null
     private var tabsBottomSheetAdapter: TabsBottomSheetAdapter? = null
 
     // Menu
@@ -2380,38 +2378,88 @@ abstract class BrowserActivity : ThemableBrowserActivity(), BrowserView, UIContr
     // ==========================================
 
     private fun initTabsBottomSheet() {
-        tabsBottomSheetLayout = findViewById(R.id.tabs_bottom_sheet_layout)
-        tabsBottomSheetScrim = findViewById(R.id.tabs_bottom_scrim)
-        tabsBottomSheetRecycler = findViewById(R.id.tabs_bottom_recycler)
+        mainHandler.post {
+            try {
+                drawer_layout?.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, getTabDrawer())
+            } catch (e: Exception) {}
+        }
+    }
 
-        val recycler = tabsBottomSheetRecycler ?: return
-        val sheetLayout = tabsBottomSheetLayout ?: return
-        val scrim = tabsBottomSheetScrim ?: return
+    private fun isTabsBottomSheetShowing(): Boolean {
+        return tabsDialog?.isShowing == true
+    }
+
+    private fun updateTabsBottomSheetList() {
+        if (tabsDialog?.isShowing == true) {
+            val tabStates = tabsManager.allTabs.map(SmartCookieView::asTabViewState)
+            tabsBottomSheetAdapter?.showTabs(tabStates)
+        }
+    }
+
+    fun showTabsBottomSheet() {
+        if (tabsDialog?.isShowing == true) {
+            hideTabsBottomSheet()
+            return
+        }
+
+        val dialog = BottomSheetDialog(this, R.style.ViaBottomSheetDialogTheme)
+        tabsDialog = dialog
+        val view = LayoutInflater.from(this).inflate(R.layout.view_tabs_bottom_sheet, null)
+        dialog.setContentView(view)
+
+        // Make bottom sheet container completely transparent to eliminate white border leak
+        try {
+            dialog.window?.setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
+            dialog.window?.decorView?.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)?.background = ColorDrawable(android.graphics.Color.TRANSPARENT)
+        } catch (e: Exception) {}
 
         val isDark = isDarkTheme
         val rootBg = if (isDark) R.drawable.dialog_via_menu_bg_dark else R.drawable.dialog_via_menu_bg_light
-        sheetLayout.setBackgroundResource(rootBg)
+        view.setBackgroundResource(rootBg)
 
-        tabsBottomSheetAdapter = TabsBottomSheetAdapter(
+        // Dynamic theming for elements
+        val iconColor = if (isDark) 0xFFA0A4AE.toInt() else 0xFF5F6368.toInt()
+        val dividerColor = if (isDark) 0x14FFFFFF else 0x14000000
+        val handleColor = if (isDark) 0x40FFFFFF else 0x40000000
+
+        view.findViewById<View>(R.id.tabs_bottom_handle)?.background?.setTint(handleColor)
+        view.findViewById<View>(R.id.tabs_bottom_divider)?.setBackgroundColor(dividerColor)
+        view.findViewById<ImageView>(R.id.btn_tabs_bottom_new_tab_icon)?.setColorFilter(iconColor)
+
+        val recycler = view.findViewById<RecyclerView>(R.id.tabs_bottom_recycler)
+        val newTabBtn = view.findViewById<View>(R.id.btn_tabs_bottom_new_tab)
+
+        val adapter = TabsBottomSheetAdapter(
             isDarkTheme = isDark,
             onTabSelected = { position ->
-                hideTabsBottomSheet()
+                dialog.dismiss()
                 presenter?.tabChanged(position)
             },
             onTabClosed = { position ->
                 presenter?.deleteTab(position)
-                updateTabsBottomSheetList()
-                if (tabsManager.allTabs.isEmpty()) {
-                    hideTabsBottomSheet()
+                val tabStates = tabsManager.allTabs.map(SmartCookieView::asTabViewState)
+                if (tabStates.isEmpty()) {
+                    dialog.dismiss()
                     newTabButtonClicked()
+                } else {
+                    adapter.showTabs(tabStates)
                 }
             }
         )
+        tabsBottomSheetAdapter = adapter
 
         recycler.layoutManager = LinearLayoutManager(this)
-        recycler.adapter = tabsBottomSheetAdapter
+        recycler.adapter = adapter
+        val allTabStates = tabsManager.allTabs.map(SmartCookieView::asTabViewState)
+        adapter.showTabs(allTabStates)
 
-        val maxHeight = (resources.displayMetrics.heightPixels * 0.52f).toInt()
+        val currentPos = tabsManager.positionOf(tabsManager.currentTab)
+        if (currentPos >= 0) {
+            recycler.scrollToPosition(currentPos)
+        }
+
+        val maxHeight = (resources.displayMetrics.heightPixels * 0.55f).toInt()
         recycler.viewTreeObserver.addOnGlobalLayoutListener {
             if (recycler.height > maxHeight) {
                 val params = recycler.layoutParams
@@ -2422,74 +2470,25 @@ abstract class BrowserActivity : ThemableBrowserActivity(), BrowserView, UIContr
             }
         }
 
-        findViewById<View>(R.id.btn_tabs_bottom_new_tab)?.setOnClickListener {
-            hideTabsBottomSheet()
+        newTabBtn?.setOnClickListener {
+            dialog.dismiss()
             newTabButtonClicked()
         }
 
-        scrim.setOnClickListener {
-            hideTabsBottomSheet()
+        dialog.setOnDismissListener {
+            if (tabsDialog == dialog) {
+                tabsDialog = null
+                tabsBottomSheetAdapter = null
+            }
         }
 
-        mainHandler.post {
-            drawer_layout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, getTabDrawer())
-        }
-    }
-
-    private fun isTabsBottomSheetShowing(): Boolean {
-        return tabsBottomSheetLayout?.visibility == View.VISIBLE
-    }
-
-    private fun updateTabsBottomSheetList() {
-        val tabStates = tabsManager.allTabs.map(SmartCookieView::asTabViewState)
-        tabsBottomSheetAdapter?.showTabs(tabStates)
-    }
-
-    fun showTabsBottomSheet() {
-        if (tabsBottomSheetLayout == null) {
-            initTabsBottomSheet()
-        }
-        val sheetLayout = tabsBottomSheetLayout ?: return
-        val scrim = tabsBottomSheetScrim ?: return
-
-        updateTabsBottomSheetList()
-
-        if (sheetLayout.visibility == View.VISIBLE) return
-
-        scrim.visibility = View.VISIBLE
-        scrim.alpha = 0f
-        scrim.animate().alpha(1f).setDuration(200).start()
-
-        sheetLayout.visibility = View.VISIBLE
-        sheetLayout.post {
-            val h = sheetLayout.height.toFloat().coerceAtLeast(300f)
-            sheetLayout.translationY = h
-            sheetLayout.animate()
-                .translationY(0f)
-                .setDuration(250)
-                .setInterpolator(android.view.animation.DecelerateInterpolator())
-                .start()
-        }
+        dialog.show()
     }
 
     fun hideTabsBottomSheet() {
-        val sheetLayout = tabsBottomSheetLayout ?: return
-        val scrim = tabsBottomSheetScrim ?: return
-
-        if (sheetLayout.visibility != View.VISIBLE) return
-
-        scrim.animate().alpha(0f).setDuration(200).withEndAction {
-            scrim.visibility = View.GONE
-        }.start()
-
-        val h = sheetLayout.height.toFloat().coerceAtLeast(300f)
-        sheetLayout.animate()
-            .translationY(h)
-            .setDuration(200)
-            .setInterpolator(android.view.animation.AccelerateInterpolator())
-            .withEndAction {
-                sheetLayout.visibility = View.GONE
-            }.start()
+        tabsDialog?.dismiss()
+        tabsDialog = null
+        tabsBottomSheetAdapter = null
     }
 
     fun toggleTabsBottomSheet() {
