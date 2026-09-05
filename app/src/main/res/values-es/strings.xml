@@ -446,5 +446,7 @@
     <string name="download_to_sd">Download to SD card</string>
     <string name="legacy_download_manager">Use integrated download manager</string>
     <string name="legacy_download_manager_desc">Download files using the yLoad download manager, instead of the system one</string>
+    <string name="error">Error</string>
+    <string name="save_file_success">Archivo guardado correctamente</string>
     <!-- finish pages -->
 </resources>

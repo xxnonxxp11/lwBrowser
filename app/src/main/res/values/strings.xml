@@ -647,5 +647,7 @@
 
     <string name="forgot_password">Forgot password</string>
     <string name="recover_app_lock">Please visit <a href="https://github.com/xxnonxxp11/yLoad/recover.php">github.com/xxnonxxp11/yLoad/recover.php</a> in another browser to recover your app lock password.</string>
+    <string name="error">Error</string>
+    <string name="save_file_success">File saved successfully</string>
     <!-- finish pages -->
 </resources>
