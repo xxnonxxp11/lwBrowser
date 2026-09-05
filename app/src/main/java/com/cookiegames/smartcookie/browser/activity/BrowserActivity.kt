@@ -2443,7 +2443,7 @@ abstract class BrowserActivity : ThemableBrowserActivity(), BrowserView, UIContr
                     dialog.dismiss()
                     newTabButtonClicked()
                 } else {
-                    adapter.showTabs(tabStates)
+                    tabsBottomSheetAdapter?.showTabs(tabStates)
                 }
             }
         )
