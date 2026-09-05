@@ -10,27 +10,29 @@ import android.content.Intent.ACTION_VIEW
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
-import android.text.format.DateUtils
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
-import android.view.*
-import android.widget.Filter
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.SearchView
-import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import butterknife.ButterKnife
 import com.cookiegames.smartcookie.AppTheme
+import com.cookiegames.smartcookie.MainActivity
 import com.cookiegames.smartcookie.R
 import com.cookiegames.smartcookie.database.HistoryEntry
 import com.cookiegames.smartcookie.database.history.HistoryRepository
 import com.cookiegames.smartcookie.di.injector
 import com.cookiegames.smartcookie.dialog.LightningDialogBuilder
+import com.cookiegames.smartcookie.download.DownloadActivity
 import com.cookiegames.smartcookie.favicon.FaviconModel
 import com.cookiegames.smartcookie.preference.UserPreferences
 import com.cookiegames.smartcookie.utils.ThemeUtils
@@ -41,8 +43,11 @@ import io.reactivex.schedulers.Schedulers
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
+import kotlin.collections.ArrayList
+import kotlin.collections.HashSet
 
-class HistoryActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
+class HistoryActivity : AppCompatActivity() {
+
     @JvmField
     @Inject
     var mUserPreferences: UserPreferences? = null
@@ -59,9 +64,27 @@ class HistoryActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
     private lateinit var list: RecyclerView
     private lateinit var emptyView: View
-    private lateinit var arrayAdapter: CustomAdapter
-    private var historyList: List<HistoryEntry> = emptyList()
+    private lateinit var searchInput: EditText
+    private lateinit var searchClear: ImageView
+    private lateinit var backButton: ImageButton
+    private lateinit var tabBookmarks: TextView
+    private lateinit var tabHistory: TextView
+    private lateinit var tabSavedPages: TextView
+
+    private lateinit var bottomBarNormal: View
+    private lateinit var bottomBarEdit: View
+    private lateinit var btnTabs: TextView
+    private lateinit var btnClearAll: TextView
+    private lateinit var btnEdit: TextView
+    private lateinit var btnSelectAll: TextView
+    private lateinit var btnDeleteSelected: TextView
+    private lateinit var btnDone: TextView
+
     private val compositeDisposable = CompositeDisposable()
+    private val selectedUrls = HashSet<String>()
+    private var isEditMode = false
+    private var rawHistoryList: List<HistoryEntry> = emptyList()
+    private lateinit var historyAdapter: HistoryAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         injector.inject(this)
@@ -81,48 +104,217 @@ class HistoryActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
             window.setBackgroundDrawable(ColorDrawable(color))
         }
 
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            window.statusBarColor = color
+        }
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_history)
-        ButterKnife.bind(this)
 
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        initViews()
+        setupListeners()
+        loadHistory()
+    }
 
+    private fun initViews() {
         list = findViewById(R.id.history)
         emptyView = findViewById(R.id.empty_history_view)
+        searchInput = findViewById(R.id.history_search_input)
+        searchClear = findViewById(R.id.history_search_clear)
+        backButton = findViewById(R.id.history_back_button)
+        tabBookmarks = findViewById(R.id.tab_bookmarks)
+        tabHistory = findViewById(R.id.tab_history)
+        tabSavedPages = findViewById(R.id.tab_saved_pages)
+
+        bottomBarNormal = findViewById(R.id.bottom_bar_normal)
+        bottomBarEdit = findViewById(R.id.bottom_bar_edit)
+        btnTabs = findViewById(R.id.btn_tabs)
+        btnClearAll = findViewById(R.id.btn_clear_all)
+        btnEdit = findViewById(R.id.btn_edit)
+        btnSelectAll = findViewById(R.id.btn_select_all)
+        btnDeleteSelected = findViewById(R.id.btn_delete_selected)
+        btnDone = findViewById(R.id.btn_done)
 
         list.layoutManager = LinearLayoutManager(this)
-        arrayAdapter = CustomAdapter(
-            historyList,
-            faviconModel,
+        historyAdapter = HistoryAdapter(
+            faviconModel = faviconModel,
             onItemClick = { entry ->
-                val i = Intent(ACTION_VIEW).apply {
-                    data = Uri.parse(entry.url)
-                    setPackage(packageName)
+                if (isEditMode) {
+                    toggleItemSelection(entry.url)
+                } else {
+                    val i = Intent(ACTION_VIEW).apply {
+                        data = Uri.parse(entry.url)
+                        setPackage(packageName)
+                    }
+                    startActivity(i)
                 }
-                startActivity(i)
             },
             onItemLongClick = { entry ->
-                dialogBuilder?.showLongPressedHistoryLinkDialog(this@HistoryActivity, entry.url)
+                if (!isEditMode) {
+                    enterEditMode()
+                    selectedUrls.add(entry.url)
+                    historyAdapter.notifyDataSetChanged()
+                    updateEditButtons()
+                } else {
+                    toggleItemSelection(entry.url)
+                }
             },
-            onItemDeleteClick = { entry, position ->
-                compositeDisposable.add(
-                    historyRepository.deleteHistoryEntry(entry.url)
-                        .subscribeOn(Schedulers.io())
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribe({
-                            arrayAdapter.removeItemAt(position)
-                            updateEmptyState()
-                        }, { e ->
-                            Log.e("HistoryActivity", "Error deleting entry", e)
-                        })
-                )
-            }
+            isUrlSelected = { url -> selectedUrls.contains(url) }
         )
-        list.adapter = arrayAdapter
+        list.adapter = historyAdapter
+    }
 
-        loadHistory()
+    private fun setupListeners() {
+        backButton.setOnClickListener {
+            if (isEditMode) {
+                exitEditMode()
+            } else {
+                finish()
+            }
+        }
+
+        tabBookmarks.setOnClickListener {
+            val intent = Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra("OPEN_BOOKMARKS", true)
+            }
+            startActivity(intent)
+            finish()
+        }
+
+        tabHistory.setOnClickListener {
+            list.smoothScrollToPosition(0)
+        }
+
+        tabSavedPages.setOnClickListener {
+            startActivity(Intent(this, DownloadActivity::class.java))
+            finish()
+        }
+
+        // Search Bar Filtering
+        searchInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s?.toString()?.trim() ?: ""
+                searchClear.visibility = if (query.isNotEmpty()) View.VISIBLE else View.GONE
+                applyFilter(query)
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        searchClear.setOnClickListener {
+            searchInput.setText("")
+        }
+
+        // Bottom Bar Normal Actions
+        btnTabs.setOnClickListener {
+            val intent = Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra("OPEN_TABS", true)
+            }
+            startActivity(intent)
+            finish()
+        }
+
+        btnClearAll.setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.title_clear_history)
+                .setMessage("¿Deseas borrar todo el historial de navegación?")
+                .setPositiveButton(R.string.action_delete) { _, _ ->
+                    compositeDisposable.add(
+                        historyRepository.deleteHistory()
+                            .subscribeOn(Schedulers.io())
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribe({
+                                selectedUrls.clear()
+                                loadHistory()
+                                Toast.makeText(this, R.string.message_clear_history, Toast.LENGTH_SHORT).show()
+                            }, { e ->
+                                Log.e("HistoryActivity", "Error clearing history", e)
+                            })
+                    )
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+
+        btnEdit.setOnClickListener {
+            enterEditMode()
+        }
+
+        // Bottom Bar Edit Actions
+        btnSelectAll.setOnClickListener {
+            val visibleEntries = historyAdapter.getVisibleEntries()
+            if (selectedUrls.size == visibleEntries.size && visibleEntries.isNotEmpty()) {
+                selectedUrls.clear()
+            } else {
+                selectedUrls.clear()
+                for (entry in visibleEntries) {
+                    selectedUrls.add(entry.url)
+                }
+            }
+            historyAdapter.notifyDataSetChanged()
+            updateEditButtons()
+        }
+
+        btnDeleteSelected.setOnClickListener {
+            if (selectedUrls.isEmpty()) return@setOnClickListener
+
+            val urlsToDelete = selectedUrls.toList()
+            compositeDisposable.add(
+                historyRepository.deleteHistoryEntries(urlsToDelete)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe({
+                        selectedUrls.clear()
+                        loadHistory()
+                        Toast.makeText(this, "Eliminado del historial", Toast.LENGTH_SHORT).show()
+                        if (isEditMode) {
+                            updateEditButtons()
+                        }
+                    }, { e ->
+                        Log.e("HistoryActivity", "Error deleting selected entries", e)
+                    })
+            )
+        }
+
+        btnDone.setOnClickListener {
+            exitEditMode()
+        }
+    }
+
+    private fun enterEditMode() {
+        isEditMode = true
+        bottomBarNormal.visibility = View.GONE
+        bottomBarEdit.visibility = View.VISIBLE
+        historyAdapter.setEditMode(true)
+        updateEditButtons()
+    }
+
+    private fun exitEditMode() {
+        isEditMode = false
+        selectedUrls.clear()
+        bottomBarNormal.visibility = View.VISIBLE
+        bottomBarEdit.visibility = View.GONE
+        historyAdapter.setEditMode(false)
+    }
+
+    private fun toggleItemSelection(url: String) {
+        if (selectedUrls.contains(url)) {
+            selectedUrls.remove(url)
+        } else {
+            selectedUrls.add(url)
+        }
+        historyAdapter.notifyDataSetChanged()
+        updateEditButtons()
+    }
+
+    private fun updateEditButtons() {
+        val totalVisible = historyAdapter.getVisibleEntries().size
+        btnSelectAll.text = if (selectedUrls.size == totalVisible && totalVisible > 0) "Deseleccionar" else "Seleccionar todo"
+        btnDeleteSelected.text = if (selectedUrls.isNotEmpty()) "Eliminar (${selectedUrls.size})" else "Eliminar"
+        btnDeleteSelected.isEnabled = selectedUrls.isNotEmpty()
+        btnDeleteSelected.alpha = if (selectedUrls.isNotEmpty()) 1.0f else 0.4f
     }
 
     private fun loadHistory() {
@@ -132,191 +324,222 @@ class HistoryActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe({ listEntries ->
-                    historyList = listEntries
-                    arrayAdapter.updateData(listEntries)
-                    updateEmptyState()
+                    rawHistoryList = listEntries
+                    applyFilter(searchInput.text?.toString()?.trim() ?: "")
+                    if (rawHistoryList.isEmpty() && isEditMode) {
+                        exitEditMode()
+                    }
                 }, { e ->
                     Log.e("HistoryActivity", "Error loading history", e)
                 })
         )
     }
 
+    private fun applyFilter(query: String) {
+        val filtered = if (query.isEmpty()) {
+            rawHistoryList
+        } else {
+            val queryLower = query.toLowerCase(Locale.getDefault())
+            rawHistoryList.filter {
+                it.title.toLowerCase(Locale.getDefault()).contains(queryLower) ||
+                it.url.toLowerCase(Locale.getDefault()).contains(queryLower)
+            }
+        }
+
+        val groupedItems = groupEntriesByDate(filtered)
+        historyAdapter.submitItems(groupedItems)
+        updateEmptyState()
+        if (isEditMode) {
+            updateEditButtons()
+        }
+    }
+
     private fun updateEmptyState() {
-        val isEmpty = arrayAdapter.itemCount == 0
+        val isEmpty = historyAdapter.itemCount == 0
         emptyView.visibility = if (isEmpty) View.VISIBLE else View.GONE
         list.visibility = if (isEmpty) View.GONE else View.VISIBLE
     }
 
-    fun dataChanged() {
-        loadHistory()
+    private fun getDayStartTimestamp(timeMillis: Long): Long {
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = timeMillis
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        return cal.timeInMillis
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            android.R.id.home -> finish()
-            R.id.action_clear_history -> {
-                AlertDialog.Builder(this)
-                    .setTitle(R.string.title_clear_history)
-                    .setMessage("¿Deseas borrar todo el historial de navegación?")
-                    .setPositiveButton(R.string.action_delete) { _, _ ->
-                        compositeDisposable.add(
-                            historyRepository.deleteHistory()
-                                .subscribeOn(Schedulers.io())
-                                .observeOn(AndroidSchedulers.mainThread())
-                                .subscribe({
-                                    dataChanged()
-                                    Toast.makeText(this, R.string.message_clear_history, Toast.LENGTH_SHORT).show()
-                                }, { e ->
-                                    Log.e("HistoryActivity", "Error clearing history", e)
-                                })
-                        )
-                    }
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show()
-            }
-            else -> return super.onOptionsItemSelected(item)
+    private fun getHeaderTitleForDay(dayStartMillis: Long): String {
+        val now = Calendar.getInstance()
+        val todayStart = getDayStartTimestamp(now.timeInMillis)
+        val calYesterday = Calendar.getInstance().apply {
+            timeInMillis = todayStart
+            add(Calendar.DAY_OF_YEAR, -1)
         }
-        return true
+        val yesterdayStart = calYesterday.timeInMillis
+
+        return when (dayStartMillis) {
+            todayStart -> "Hoy"
+            yesterdayStart -> "Ayer"
+            else -> {
+                val sdf = SimpleDateFormat("EEE., MMM dd", Locale.getDefault())
+                sdf.format(Date(dayStartMillis)).toLowerCase(Locale.getDefault())
+            }
+        }
+    }
+
+    private fun groupEntriesByDate(entries: List<HistoryEntry>): List<HistoryListItem> {
+        val items = ArrayList<HistoryListItem>()
+        var currentDay = -1L
+
+        for (entry in entries) {
+            val day = getDayStartTimestamp(entry.lastTimeVisited)
+            if (day != currentDay) {
+                currentDay = day
+                items.add(HistoryListItem.Header(getHeaderTitleForDay(day)))
+            }
+            items.add(HistoryListItem.Entry(entry))
+        }
+        return items
+    }
+
+    override fun onBackPressed() {
+        if (isEditMode) {
+            exitEditMode()
+        } else {
+            super.onBackPressed()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         compositeDisposable.clear()
-        arrayAdapter.cleanup()
+        historyAdapter.cleanup()
     }
 
-    class CustomAdapter(
-        private var dataSet: List<HistoryEntry>,
+    sealed class HistoryListItem {
+        data class Header(val title: String) : HistoryListItem()
+        data class Entry(val entry: HistoryEntry) : HistoryListItem()
+    }
+
+    class HistoryAdapter(
         private val faviconModel: FaviconModel,
         private val onItemClick: (HistoryEntry) -> Unit,
         private val onItemLongClick: (HistoryEntry) -> Unit,
-        private val onItemDeleteClick: (HistoryEntry, Int) -> Unit
-    ) : RecyclerView.Adapter<CustomAdapter.ViewHolder>() {
+        private val isUrlSelected: (String) -> Boolean
+    ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-        private var filtered: MutableList<HistoryEntry> = dataSet.toMutableList()
-        private var oldList: MutableList<HistoryEntry> = dataSet.toMutableList()
-        private val faviconFetchSubscriptions = HashMap<String, Disposable>()
+        private var items: List<HistoryListItem> = emptyList()
+        private var isEditMode: Boolean = false
+        private val faviconSubscriptions = HashMap<String, Disposable>()
 
-        fun updateData(newList: List<HistoryEntry>) {
-            dataSet = newList
-            oldList = newList.toMutableList()
-            filtered = newList.toMutableList()
+        companion object {
+            private const val TYPE_HEADER = 0
+            private const val TYPE_ENTRY = 1
+        }
+
+        fun submitItems(newItems: List<HistoryListItem>) {
+            items = newItems
             notifyDataSetChanged()
         }
 
-        fun removeItemAt(position: Int) {
-            if (position in 0 until dataSet.size) {
-                val item = dataSet[position]
-                val mutable = dataSet.toMutableList()
-                mutable.removeAt(position)
-                dataSet = mutable
-                oldList.remove(item)
-                filtered.remove(item)
-                notifyItemRemoved(position)
-            }
+        fun setEditMode(edit: Boolean) {
+            isEditMode = edit
+            notifyDataSetChanged()
+        }
+
+        fun getVisibleEntries(): List<HistoryEntry> {
+            return items.filterIsInstance<HistoryListItem.Entry>().map { it.entry }
         }
 
         fun cleanup() {
-            for (sub in faviconFetchSubscriptions.values) {
+            for (sub in faviconSubscriptions.values) {
                 sub.dispose()
             }
-            faviconFetchSubscriptions.clear()
+            faviconSubscriptions.clear()
         }
 
-        fun getFilter(): Filter {
-            return object : Filter() {
-                override fun performFiltering(charSequence: CharSequence): FilterResults {
-                    val charString = charSequence.toString()
-                    if (charString.isEmpty()) {
-                        filtered = oldList
-                    } else {
-                        val filteredList = ArrayList<HistoryEntry>()
-                        val queryLower = charString.toLowerCase(Locale.getDefault())
-                        for (row in oldList) {
-                            if (row.title.toLowerCase(Locale.getDefault()).contains(queryLower) ||
-                                row.url.toLowerCase(Locale.getDefault()).contains(queryLower)
-                            ) {
-                                filteredList.add(row)
+        override fun getItemViewType(position: Int): Int {
+            return when (items[position]) {
+                is HistoryListItem.Header -> TYPE_HEADER
+                is HistoryListItem.Entry -> TYPE_ENTRY
+            }
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+            val inflater = LayoutInflater.from(parent.context)
+            return if (viewType == TYPE_HEADER) {
+                val view = inflater.inflate(R.layout.item_history_header, parent, false)
+                HeaderViewHolder(view)
+            } else {
+                val view = inflater.inflate(R.layout.history_row, parent, false)
+                EntryViewHolder(view)
+            }
+        }
+
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+            when (val item = items[position]) {
+                is HistoryListItem.Header -> {
+                    (holder as HeaderViewHolder).headerText.text = item.title
+                }
+                is HistoryListItem.Entry -> {
+                    val entryHolder = holder as EntryViewHolder
+                    val entry = item.entry
+
+                    val displayTitle = if (entry.title.isNotBlank()) entry.title.trim() else formatHost(entry.url)
+                    entryHolder.title.text = displayTitle
+                    entryHolder.url.text = formatCleanUrl(entry.url)
+
+                    // Favicon loading
+                    entryHolder.favicon.tag = entry.url
+                    val defaultIcon = faviconModel.createDefaultBitmapForTitle(displayTitle)
+                    entryHolder.favicon.setImageBitmap(defaultIcon)
+
+                    faviconSubscriptions[entry.url]?.dispose()
+                    faviconSubscriptions[entry.url] = faviconModel
+                        .faviconForUrl(entry.url, displayTitle)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe({ bitmap ->
+                            if (entryHolder.favicon.tag == entry.url) {
+                                entryHolder.favicon.setImageBitmap(bitmap)
                             }
-                        }
-                        filtered = filteredList
+                        }, {})
+
+                    // Checkbox in edit mode
+                    if (isEditMode) {
+                        entryHolder.check.visibility = View.VISIBLE
+                        val selected = isUrlSelected(entry.url)
+                        entryHolder.check.setImageResource(
+                            if (selected) R.drawable.ic_history_check_on else R.drawable.ic_history_check_off
+                        )
+                    } else {
+                        entryHolder.check.visibility = View.GONE
                     }
-                    val filterResults = FilterResults()
-                    filterResults.values = filtered
-                    return filterResults
-                }
 
-                @Suppress("UNCHECKED_CAST")
-                override fun publishResults(charSequence: CharSequence?, filterResults: FilterResults) {
-                    dataSet = (filterResults.values as? MutableList<HistoryEntry>) ?: ArrayList()
-                    notifyDataSetChanged()
-                }
-            }
-        }
-
-        fun getItem(position: Int) = dataSet[position]
-
-        class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val favicon: ImageView = view.findViewById(R.id.historyFavicon)
-            val title: TextView = view.findViewById(R.id.historyTitle)
-            val url: TextView = view.findViewById(R.id.historyUrl)
-            val delete: ImageButton = view.findViewById(R.id.historyDelete)
-        }
-
-        override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int): ViewHolder {
-            val view = LayoutInflater.from(viewGroup.context)
-                .inflate(R.layout.history_row, viewGroup, false)
-            return ViewHolder(view)
-        }
-
-        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            val entry = dataSet[position]
-            val displayTitle = if (entry.title.isNotBlank()) entry.title.trim() else formatHost(entry.url)
-            holder.title.text = displayTitle
-            holder.url.text = formatSubtitle(entry.url, entry.lastTimeVisited)
-
-            holder.favicon.tag = entry.url
-            val defaultIcon = faviconModel.createDefaultBitmapForTitle(displayTitle)
-            holder.favicon.setImageBitmap(defaultIcon)
-
-            faviconFetchSubscriptions[entry.url]?.dispose()
-            faviconFetchSubscriptions[entry.url] = faviconModel
-                .faviconForUrl(entry.url, displayTitle)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe({ bitmap ->
-                    if (holder.favicon.tag == entry.url) {
-                        holder.favicon.setImageBitmap(bitmap)
+                    entryHolder.itemView.setOnClickListener {
+                        onItemClick(entry)
                     }
-                }, {
-                    // Retain default letter avatar
-                })
 
-            holder.itemView.setOnClickListener {
-                onItemClick(entry)
-            }
-
-            holder.itemView.setOnLongClickListener {
-                onItemLongClick(entry)
-                true
-            }
-
-            holder.delete.setOnClickListener {
-                val currentPos = holder.adapterPosition
-                if (currentPos != RecyclerView.NO_POSITION && currentPos < dataSet.size) {
-                    onItemDeleteClick(dataSet[currentPos], currentPos)
+                    entryHolder.itemView.setOnLongClickListener {
+                        onItemLongClick(entry)
+                        true
+                    }
                 }
             }
         }
 
-        override fun onViewRecycled(holder: ViewHolder) {
+        override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
             super.onViewRecycled(holder)
-            (holder.favicon.tag as? String)?.let { url ->
-                faviconFetchSubscriptions.remove(url)?.dispose()
+            if (holder is EntryViewHolder) {
+                (holder.favicon.tag as? String)?.let { url ->
+                    faviconSubscriptions.remove(url)?.dispose()
+                }
             }
         }
 
-        override fun getItemCount() = dataSet.size
+        override fun getItemCount(): Int = items.size
 
         private fun formatHost(url: String): String {
             return try {
@@ -327,67 +550,23 @@ class HistoryActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
             }
         }
 
-        private fun formatSubtitle(url: String, timeMillis: Long): String {
-            val host = try {
-                val uri = Uri.parse(url)
-                val h = uri.host?.removePrefix("www.") ?: ""
-                val path = uri.path?.trim('/') ?: ""
-                if (path.isNotEmpty() && path.length < 25 && !path.contains("/")) {
-                    "$h/$path"
-                } else if (h.isNotEmpty()) {
-                    h
-                } else {
-                    url
-                }
+        private fun formatCleanUrl(url: String): String {
+            return try {
+                url.removePrefix("https://").removePrefix("http://")
             } catch (e: Exception) {
                 url
             }
-            val timeFormatted = formatTime(timeMillis)
-            return if (timeFormatted.isNotEmpty()) "$host · $timeFormatted" else host
         }
 
-        private fun formatTime(timeMillis: Long): String {
-            if (timeMillis <= 0) return ""
-            val now = System.currentTimeMillis()
-            val diff = now - timeMillis
-            return try {
-                when {
-                    diff < 60 * 1000 -> "Ahora"
-                    DateUtils.isToday(timeMillis) -> {
-                        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-                        "Hoy " + sdf.format(Date(timeMillis))
-                    }
-                    diff < 48 * 60 * 60 * 1000 && !DateUtils.isToday(timeMillis) -> {
-                        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-                        "Ayer " + sdf.format(Date(timeMillis))
-                    }
-                    else -> {
-                        val sdf = SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault())
-                        sdf.format(Date(timeMillis))
-                    }
-                }
-            } catch (e: Exception) {
-                ""
-            }
+        class HeaderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val headerText: TextView = view.findViewById(R.id.historyDateHeader)
+        }
+
+        class EntryViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val favicon: ImageView = view.findViewById(R.id.historyFavicon)
+            val title: TextView = view.findViewById(R.id.historyTitle)
+            val url: TextView = view.findViewById(R.id.historyUrl)
+            val check: ImageView = view.findViewById(R.id.historyCheck)
         }
     }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.history, menu)
-
-        val searchItem: MenuItem? = menu.findItem(R.id.action_search)
-        val searchView = searchItem?.actionView as? SearchView
-        searchView?.setOnQueryTextListener(this)
-
-        return super.onCreateOptionsMenu(menu)
-    }
-
-    override fun onQueryTextChange(query: String?): Boolean {
-        arrayAdapter.getFilter().filter(query)
-        return false
-    }
-
-    override fun onQueryTextSubmit(query: String?): Boolean {
-        return false
-    }
-}
+}

@@ -27,6 +27,14 @@ interface HistoryRepository {
     fun deleteHistoryEntry(url: String): Completable
 
     /**
+     * An observable that deletes multiple history entries by URL in a single batch.
+     *
+     * @param urls the list of URLs of items to delete.
+     * @return a valid observable.
+     */
+    fun deleteHistoryEntries(urls: List<String>): Completable
+
+    /**
      * An observable that visits the URL by adding it to the database if it doesn't exist or
      * updating the time visited if it does.
      *

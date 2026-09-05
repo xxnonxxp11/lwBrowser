@@ -3,21 +3,21 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:minHeight="54dp"
+    android:minHeight="46dp"
     android:background="?attr/selectableItemBackground"
     android:clickable="true"
     android:focusable="true"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="14dp"
-    android:paddingEnd="10dp"
-    android:paddingTop="7dp"
-    android:paddingBottom="7dp">
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="5dp"
+    android:paddingBottom="5dp">
 
     <ImageView
         android:id="@+id/historyFavicon"
-        android:layout_width="28dp"
-        android:layout_height="28dp"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
         android:layout_gravity="center_vertical"
         android:contentDescription="@null"
         android:scaleType="fitCenter" />
@@ -26,8 +26,8 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="12dp"
-        android:layout_marginEnd="6dp"
+        android:layout_marginStart="14dp"
+        android:layout_marginEnd="8dp"
         android:gravity="center_vertical"
         android:orientation="vertical">
 
@@ -36,7 +36,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:fontFamily="sans-serif-medium"
+            android:fontFamily="sans-serif"
             android:maxLines="1"
             android:singleLine="true"
             android:textColor="?android:attr/textColorPrimary"
@@ -46,26 +46,24 @@
             android:id="@+id/historyUrl"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="1.5dp"
             android:ellipsize="end"
             android:fontFamily="sans-serif"
             android:maxLines="1"
             android:singleLine="true"
-            android:textColor="?android:attr/textColorSecondary"
+            android:textColor="#7C808E"
             android:textSize="11.5sp" />
 
     </LinearLayout>
 
-    <ImageButton
-        android:id="@+id/historyDelete"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
+    <ImageView
+        android:id="@+id/historyCheck"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
         android:layout_gravity="center_vertical"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Eliminar"
-        android:padding="7dp"
+        android:contentDescription="Seleccionar"
         android:scaleType="fitCenter"
-        app:srcCompat="@drawable/ic_action_delete"
-        app:tint="?android:attr/textColorSecondary" />
+        android:src="@drawable/ic_history_check_off"
+        android:visibility="gone" />
 
 </LinearLayout>

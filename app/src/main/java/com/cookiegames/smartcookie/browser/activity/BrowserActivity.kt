@@ -1332,6 +1332,12 @@ abstract class BrowserActivity : ThemableBrowserActivity(), BrowserView, UIContr
 
     protected fun handleNewIntent(intent: Intent) {
         presenter?.onNewIntent(intent)
+        if (intent.getBooleanExtra("OPEN_BOOKMARKS", false)) {
+            openBookmarks()
+        }
+        if (intent.getBooleanExtra("OPEN_TABS", false)) {
+            toggleTabsBottomSheet()
+        }
     }
 
     protected fun performExitCleanUp() {

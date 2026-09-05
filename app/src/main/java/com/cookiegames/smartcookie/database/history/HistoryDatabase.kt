@@ -58,6 +58,18 @@ class HistoryDatabase @Inject constructor(
         database.delete(TABLE_HISTORY, "$KEY_URL = ?", arrayOf(url))
     }
 
+    override fun deleteHistoryEntries(urls: List<String>): Completable = Completable.fromAction {
+        database.beginTransaction()
+        try {
+            for (url in urls) {
+                database.delete(TABLE_HISTORY, "$KEY_URL = ?", arrayOf(url))
+            }
+            database.setTransactionSuccessful()
+        } finally {
+            database.endTransaction()
+        }
+    }
+
     override fun visitHistoryEntry(url: String, title: String?): Completable = Completable.fromAction {
         val values = ContentValues().apply {
             put(KEY_TITLE, title ?: "")
