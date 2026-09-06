@@ -84,9 +84,9 @@ class UBlockAdDefuser @Inject constructor() {
             if (window.__yload_ad_defuser__) return;
             window.__yload_ad_defuser__ = true;
 
-            // Never interfere with Google search engine internal hydration and thumbnail fetches
+            // Never interfere with Google search engine or YouTube internal player/hydration fetches
             var host = window.location.hostname || '';
-            if (host.indexOf('google.') !== -1) return;
+            if (host.indexOf('google.') !== -1 || host.indexOf('youtube.') !== -1 || host.indexOf('youtu.be') !== -1) return;
 
             var adPattern = /(?:doubleclick\.net|googleads|adservice\.google|googlesyndication|google-analytics\.com|criteo\.com|taboola\.com|outbrain\.com|adnxs\.com|pubmatic\.com|rubiconproject\.com|openx\.net|scorecardresearch\.com|chartbeat\.com|hotjar\.com|clarity\.ms|sentry\.io|bugsnag\.com|luckyorange\.com|mouseflow\.com|fakepage\.html|\/pagead\/)/i;
 
@@ -95,7 +95,11 @@ class UBlockAdDefuser @Inject constructor() {
                 window.fetch = function(input, init) {
                     var url = (typeof input === 'string') ? input : (input && input.url ? input.url : '');
                     if (url && adPattern.test(url)) {
-                        return Promise.reject(new TypeError('Failed to fetch (Blocked by yLoad AdBlock)'));
+                        return Promise.resolve(new Response('{}', {
+                            status: 200,
+                            statusText: 'OK',
+                            headers: { 'Content-Type': 'application/json' }
+                        }));
                     }
                     return _fetch.apply(this, arguments);
                 };
@@ -112,7 +116,22 @@ class UBlockAdDefuser @Inject constructor() {
                     if (this.__blocked) {
                         var self = this;
                         setTimeout(function() {
-                            if (self.onerror) self.onerror(new ProgressEvent('error'));
+                            try {
+                                Object.defineProperty(self, 'readyState', { value: 4, writable: false });
+                                Object.defineProperty(self, 'status', { value: 200, writable: false });
+                                Object.defineProperty(self, 'statusText', { value: 'OK', writable: false });
+                                Object.defineProperty(self, 'responseText', { value: '{}', writable: false });
+                                Object.defineProperty(self, 'response', { value: '{}', writable: false });
+                            } catch(e) {}
+                            if (typeof self.onreadystatechange === 'function') {
+                                try { self.onreadystatechange(); } catch(e) {}
+                            }
+                            if (typeof self.onload === 'function') {
+                                try { self.onload(); } catch(e) {}
+                            }
+                            if (typeof self.onloadend === 'function') {
+                                try { self.onloadend(); } catch(e) {}
+                            }
                         }, 1);
                         return;
                     }
@@ -140,14 +159,6 @@ class UBlockAdDefuser @Inject constructor() {
                     if (obj.playerAds) obj.playerAds = [];
                     if (obj.adSlots) obj.adSlots = [];
                     delete obj.adBreakHeartbeatParams;
-                    if (obj.playbackTracking) {
-                        delete obj.playbackTracking.videostatsPlaybackUrl;
-                        delete obj.playbackTracking.videostatsDelayplayUrl;
-                        delete obj.playbackTracking.videostatsWatchtimeUrl;
-                        delete obj.playbackTracking.qoeUrl;
-                        delete obj.playbackTracking.atrUrl;
-                        delete obj.playbackTracking.ptrackingUrl;
-                    }
                     if (obj.playerConfig && obj.playerConfig.adConfig) {
                         delete obj.playerConfig.adConfig;
                     }
@@ -202,12 +213,31 @@ class UBlockAdDefuser @Inject constructor() {
                 XMLHttpRequest.prototype.send = function() {
                     if (this.__url && typeof this.__url === 'string' && this.__url.indexOf('/youtubei/v1/player') !== -1) {
                         this.addEventListener('readystatechange', function() {
-                            if (this.readyState === 4 && this.responseText) {
+                            if (this.readyState === 4) {
                                 try {
-                                    var data = JSON.parse(this.responseText);
-                                    pruneAds(data);
-                                    Object.defineProperty(this, 'responseText', { value: JSON.stringify(data), writable: false });
-                                    Object.defineProperty(this, 'response', { value: JSON.stringify(data), writable: false });
+                                    var text = '';
+                                    if (this.responseType === '' || this.responseType === 'text') {
+                                        text = this.responseText;
+                                    }
+                                    var data = null;
+                                    if (text) {
+                                        data = JSON.parse(text);
+                                    } else if (this.responseType === 'json' && this.response) {
+                                        data = this.response;
+                                    }
+                                    if (data) {
+                                        pruneAds(data);
+                                        var jsonStr = JSON.stringify(data);
+                                        try {
+                                            Object.defineProperty(this, 'responseText', { value: jsonStr, writable: false });
+                                        } catch(e) {}
+                                        try {
+                                            Object.defineProperty(this, 'response', {
+                                                value: (this.responseType === 'json' ? data : jsonStr),
+                                                writable: false
+                                            });
+                                        } catch(e) {}
+                                    }
                                 } catch(e) {}
                             }
                         });
@@ -218,8 +248,8 @@ class UBlockAdDefuser @Inject constructor() {
 
             // 4. Auto-skip video ads and fast-forward in 300ms safely
             function autoSkip() {
-                var player = document.querySelector('.html5-video-player');
-                var isAdActive = player && (player.classList.contains('ad-showing') || player.classList.contains('ad-interrupting'));
+                var player = document.querySelector('.html5-video-player') || document.querySelector('#player') || document.querySelector('.player-container');
+                var isAdActive = player && player.classList.contains('ad-showing');
                 if (isAdActive) {
                     var video = player.querySelector('video') || document.querySelector('video');
                     if (video) {
@@ -232,7 +262,7 @@ class UBlockAdDefuser @Inject constructor() {
                         } catch(e) {}
                     }
                 }
-                var skipBtn = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-skip-button-slot button, .videoAdUiSkipButton');
+                var skipBtn = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-skip-button-slot button, .videoAdUiSkipButton, .ytm-ad-skip-button, .ytm-ad-skip-button-modern, button.ytp-ad-skip-button, .ytp-ad-skip-button-container button, .ytp-ad-skip-button-text, [class*="ad-skip-button"], button.ytm-skip-ad-button, [aria-label*="Skip ad" i], [aria-label*="Saltar" i]');
                 if (skipBtn) {
                     try { skipBtn.click(); } catch(e) {}
                 }

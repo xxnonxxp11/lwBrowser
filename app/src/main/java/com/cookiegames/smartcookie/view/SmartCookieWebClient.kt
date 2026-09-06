@@ -155,8 +155,26 @@ class SmartCookieWebClient(
         "Cache-Control" to "no-store"
     )
 
+    private val emptyJsonByteArray: ByteArray = "{}".toByteArray(Charsets.UTF_8)
+
+    private fun isYouTubeOrGoogleAd(url: String): Boolean {
+        val lower = url.toLowerCase(Locale.ROOT)
+        return lower.contains("youtube.com") ||
+                lower.contains("youtu.be") ||
+                lower.contains("googleads") ||
+                lower.contains("doubleclick.net") ||
+                lower.contains("adservice.google") ||
+                lower.contains("googlesyndication") ||
+                lower.contains("googleadservices") ||
+                lower.contains("google-analytics.com")
+    }
+
     private fun createBlockedResponse(url: String): WebResourceResponse {
         val lower = url.toLowerCase(Locale.ROOT)
+        val isYtOrGoogle = isYouTubeOrGoogleAd(url) ||
+                currentUrl.toLowerCase(Locale.ROOT).contains("youtube.com") ||
+                currentUrl.toLowerCase(Locale.ROOT).contains("youtu.be")
+
         val mimeType = when {
             lower.endsWith(".js") || lower.contains("/js/") || lower.contains(".js?") -> "application/javascript"
             lower.endsWith(".css") || lower.contains("/css/") || lower.contains(".css?") -> "text/css"
@@ -164,9 +182,26 @@ class SmartCookieWebClient(
             lower.endsWith(".jpg") || lower.endsWith(".jpeg") -> "image/jpeg"
             lower.endsWith(".gif") || lower.contains(".gif?") -> "image/gif"
             lower.endsWith(".svg") || lower.contains(".svg?") -> "image/svg+xml"
-            lower.endsWith(".json") || lower.contains("/json") -> "application/json"
+            lower.endsWith(".json") || lower.contains("/json") || isYtOrGoogle -> "application/json"
             else -> "text/plain"
         }
+
+        if (isYtOrGoogle) {
+            val stream = if (mimeType == "application/javascript") {
+                ByteArrayInputStream(emptyResponseByteArray)
+            } else {
+                ByteArrayInputStream(emptyJsonByteArray)
+            }
+            return WebResourceResponse(
+                mimeType,
+                "UTF-8",
+                200,
+                "OK",
+                blockedCorsHeaders,
+                stream
+            )
+        }
+
         return WebResourceResponse(
             mimeType,
             "UTF-8",

@@ -397,7 +397,7 @@ class SmartCookieView(
     @SuppressLint("NewApi")
     private fun WebView.initializeSettings() {
         settings.apply {
-            mediaPlaybackRequiresUserGesture = true
+            mediaPlaybackRequiresUserGesture = false
 
             if (API >= Build.VERSION_CODES.LOLLIPOP && !isIncognito) {
                 mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
