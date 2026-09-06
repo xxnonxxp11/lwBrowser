@@ -114,6 +114,7 @@ class SmartCookieWebClient(
     @Volatile private var isRunning = false
     private var zoomScale = 0.0f
 
+    @Volatile
     private var currentUrl: String = ""
 
     var sslState: SslState = SslState.None
@@ -199,31 +200,41 @@ class SmartCookieWebClient(
             corsHeaders["Access-Control-Allow-Credentials"] = "true"
         }
 
-        if (isYtOrGoogle) {
-            val isJson = mimeType == "application/json"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (isYtOrGoogle) {
+                val isJson = mimeType == "application/json"
+                val stream = if (isJson) {
+                    ByteArrayInputStream(emptyJsonByteArray)
+                } else {
+                    ByteArrayInputStream(emptyResponseByteArray)
+                }
+                return WebResourceResponse(
+                    mimeType,
+                    "UTF-8",
+                    200,
+                    "OK",
+                    corsHeaders,
+                    stream
+                )
+            }
+
+            return WebResourceResponse(
+                mimeType,
+                "UTF-8",
+                403,
+                "Blocked by yLoad AdBlock",
+                corsHeaders,
+                ByteArrayInputStream(emptyResponseByteArray)
+            )
+        } else {
+            val isJson = isYtOrGoogle && mimeType == "application/json"
             val stream = if (isJson) {
                 ByteArrayInputStream(emptyJsonByteArray)
             } else {
                 ByteArrayInputStream(emptyResponseByteArray)
             }
-            return WebResourceResponse(
-                mimeType,
-                "UTF-8",
-                200,
-                "OK",
-                corsHeaders,
-                stream
-            )
+            return WebResourceResponse(mimeType, "UTF-8", stream)
         }
-
-        return WebResourceResponse(
-            mimeType,
-            "UTF-8",
-            403,
-            "Blocked by yLoad AdBlock",
-            corsHeaders,
-            ByteArrayInputStream(emptyResponseByteArray)
-        )
     }
 
     private fun shouldRequestBeBlocked(pageUrl: String, requestUrl: String): Boolean {
@@ -332,13 +343,22 @@ class SmartCookieWebClient(
         if (userPreferences.blockImagesEnabled && isImageRequest(requestUrl, request.requestHeaders)) {
             return WebResourceResponse("image/png", "UTF-8", ByteArrayInputStream(emptyResponseByteArray))
         }
-        val pageUrl = view.url ?: currentUrl
+
+        val pageUrl = if (request.isForMainFrame) {
+            currentUrl = requestUrl
+            requestUrl
+        } else {
+            val ref = request.requestHeaders?.get("Referer") ?: request.requestHeaders?.get("referer")
+            if (!ref.isNullOrEmpty()) ref else currentUrl
+        }
+
         if (shouldRequestBeBlocked(pageUrl, requestUrl)) {
-            if (request.isForMainFrame && request.url.host.toString() != lastBlockedDomain) {
+            val reqHost = request.url.host
+            if (request.isForMainFrame && !reqHost.isNullOrEmpty() && reqHost != lastBlockedDomain) {
                 if (userPreferences.useTheme == AppTheme.LIGHT) {
                     color = ""
                 }
-                lastBlockedDomain = request.url.host.toString()
+                lastBlockedDomain = reqHost
                 return WebResourceResponse("text/html", "UTF-8", ByteArrayInputStream(Utils.buildBlockPage(activity, color, activity.resources.getString(R.string.page_blocked), activity.resources.getString(R.string.page_blocked_adblocker), requestUrl, true).toByteArray()))
             } else if (request.isForMainFrame) {
                 return null
@@ -356,7 +376,7 @@ class SmartCookieWebClient(
         if (userPreferences.blockImagesEnabled && isImageRequest(url, null)) {
             return WebResourceResponse("image/png", "UTF-8", ByteArrayInputStream(emptyResponseByteArray))
         }
-        val pageUrl = view.url ?: currentUrl
+        val pageUrl = currentUrl
         if (shouldRequestBeBlocked(pageUrl, url)) {
             return createBlockedResponse(url, pageUrl)
         }
