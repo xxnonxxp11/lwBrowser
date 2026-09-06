@@ -123,6 +123,11 @@ class UBlockAdDefuser @Inject constructor() {
                                 Object.defineProperty(self, 'responseText', { value: '{}', writable: false });
                                 Object.defineProperty(self, 'response', { value: '{}', writable: false });
                             } catch(e) {}
+                            try {
+                                self.dispatchEvent(new Event('readystatechange'));
+                                self.dispatchEvent(new Event('load'));
+                                self.dispatchEvent(new Event('loadend'));
+                            } catch(e) {}
                             if (typeof self.onreadystatechange === 'function') {
                                 try { self.onreadystatechange(); } catch(e) {}
                             }
@@ -188,10 +193,14 @@ class UBlockAdDefuser @Inject constructor() {
                         return originalFetch.apply(this, args).then(function(response) {
                             return response.clone().json().then(function(data) {
                                 var pruned = pruneAds(data);
+                                var newHeaders = new Headers(response.headers);
+                                newHeaders.delete('content-encoding');
+                                newHeaders.delete('content-length');
+                                newHeaders.set('content-type', 'application/json; charset=UTF-8');
                                 return new Response(JSON.stringify(pruned), {
                                     status: response.status,
                                     statusText: response.statusText,
-                                    headers: response.headers
+                                    headers: newHeaders
                                 });
                             }).catch(function() {
                                 return response;
@@ -246,23 +255,34 @@ class UBlockAdDefuser @Inject constructor() {
                 };
             }
 
-            // 4. Auto-skip video ads and fast-forward in 300ms safely
+            // 4. Auto-skip video ads safely without seeking main video or leaving playback rate stuck
+            var adFastForwarded = false;
+            var wasMuted = false;
             function autoSkip() {
                 var player = document.querySelector('.html5-video-player') || document.querySelector('#player') || document.querySelector('.player-container');
                 var isAdActive = player && player.classList.contains('ad-showing');
-                if (isAdActive) {
-                    var video = player.querySelector('video') || document.querySelector('video');
-                    if (video) {
+                var video = (player && player.querySelector('video')) || document.querySelector('video');
+
+                if (video) {
+                    if (isAdActive) {
+                        if (!adFastForwarded) {
+                            adFastForwarded = true;
+                            wasMuted = video.muted;
+                        }
                         try {
                             video.muted = true;
                             video.playbackRate = 16.0;
-                            if (isFinite(video.duration) && video.duration > 0) {
-                                video.currentTime = video.duration;
-                            }
+                        } catch(e) {}
+                    } else if (adFastForwarded || video.playbackRate > 1.0) {
+                        adFastForwarded = false;
+                        try {
+                            video.playbackRate = 1.0;
+                            video.muted = wasMuted;
                         } catch(e) {}
                     }
                 }
-                var skipBtn = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-skip-button-slot button, .videoAdUiSkipButton, .ytm-ad-skip-button, .ytm-ad-skip-button-modern, button.ytp-ad-skip-button, .ytp-ad-skip-button-container button, .ytp-ad-skip-button-text, [class*="ad-skip-button"], button.ytm-skip-ad-button, [aria-label*="Skip ad" i], [aria-label*="Saltar" i]');
+
+                var skipBtn = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-skip-button-slot button, .videoAdUiSkipButton, .ytm-ad-skip-button, .ytm-ad-skip-button-modern, button.ytp-ad-skip-button, .ytp-ad-skip-button-container button, .ytp-ad-skip-button-text, [class*="ad-skip-button"], button.ytm-skip-ad-button, [aria-label*="Skip ad" i], [aria-label*="Saltar" i], .ytp-ad-overlay-close-button');
                 if (skipBtn) {
                     try { skipBtn.click(); } catch(e) {}
                 }

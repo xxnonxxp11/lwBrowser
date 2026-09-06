@@ -169,11 +169,16 @@ class SmartCookieWebClient(
                 lower.contains("google-analytics.com")
     }
 
-    private fun createBlockedResponse(url: String): WebResourceResponse {
+    private fun createBlockedResponse(
+        url: String,
+        pageUrl: String = currentUrl,
+        originHeader: String? = null
+    ): WebResourceResponse {
         val lower = url.toLowerCase(Locale.ROOT)
+        val lowerPage = pageUrl.toLowerCase(Locale.ROOT)
         val isYtOrGoogle = isYouTubeOrGoogleAd(url) ||
-                currentUrl.toLowerCase(Locale.ROOT).contains("youtube.com") ||
-                currentUrl.toLowerCase(Locale.ROOT).contains("youtu.be")
+                lowerPage.contains("youtube.com") ||
+                lowerPage.contains("youtu.be")
 
         val mimeType = when {
             lower.endsWith(".js") || lower.contains("/js/") || lower.contains(".js?") -> "application/javascript"
@@ -186,18 +191,27 @@ class SmartCookieWebClient(
             else -> "text/plain"
         }
 
+        val corsHeaders = HashMap(blockedCorsHeaders)
+        val effectiveOrigin = originHeader
+            ?: if (lowerPage.contains("youtube.com") || lowerPage.contains("youtu.be")) "https://www.youtube.com" else null
+        if (effectiveOrigin != null) {
+            corsHeaders["Access-Control-Allow-Origin"] = effectiveOrigin
+            corsHeaders["Access-Control-Allow-Credentials"] = "true"
+        }
+
         if (isYtOrGoogle) {
-            val stream = if (mimeType == "application/javascript") {
-                ByteArrayInputStream(emptyResponseByteArray)
-            } else {
+            val isJson = mimeType == "application/json"
+            val stream = if (isJson) {
                 ByteArrayInputStream(emptyJsonByteArray)
+            } else {
+                ByteArrayInputStream(emptyResponseByteArray)
             }
             return WebResourceResponse(
                 mimeType,
                 "UTF-8",
                 200,
                 "OK",
-                blockedCorsHeaders,
+                corsHeaders,
                 stream
             )
         }
@@ -207,7 +221,7 @@ class SmartCookieWebClient(
             "UTF-8",
             403,
             "Blocked by yLoad AdBlock",
-            blockedCorsHeaders,
+            corsHeaders,
             ByteArrayInputStream(emptyResponseByteArray)
         )
     }
@@ -219,6 +233,7 @@ class SmartCookieWebClient(
         val lower = requestUrl.toLowerCase(Locale.ROOT)
         // Never block actual YouTube video streams, player core scripts or legitimate video/image thumbnails
         if (lower.contains("googlevideo.com") ||
+            lower.contains("youtube.com/videoplayback") ||
             lower.contains("youtube.com/s/player/") ||
             lower.contains("youtube.com/yts/") ||
             lower.contains("ytimg.com") ||
@@ -317,7 +332,8 @@ class SmartCookieWebClient(
         if (userPreferences.blockImagesEnabled && isImageRequest(requestUrl, request.requestHeaders)) {
             return WebResourceResponse("image/png", "UTF-8", ByteArrayInputStream(emptyResponseByteArray))
         }
-        if (shouldRequestBeBlocked(currentUrl, requestUrl)) {
+        val pageUrl = view.url ?: currentUrl
+        if (shouldRequestBeBlocked(pageUrl, requestUrl)) {
             if (request.isForMainFrame && request.url.host.toString() != lastBlockedDomain) {
                 if (userPreferences.useTheme == AppTheme.LIGHT) {
                     color = ""
@@ -328,7 +344,8 @@ class SmartCookieWebClient(
                 return null
             }
 
-            return createBlockedResponse(requestUrl)
+            val origin = request.requestHeaders?.get("Origin") ?: request.requestHeaders?.get("origin")
+            return createBlockedResponse(requestUrl, pageUrl, origin)
         }
         return super.shouldInterceptRequest(view, request)
     }
@@ -339,8 +356,9 @@ class SmartCookieWebClient(
         if (userPreferences.blockImagesEnabled && isImageRequest(url, null)) {
             return WebResourceResponse("image/png", "UTF-8", ByteArrayInputStream(emptyResponseByteArray))
         }
-        if (shouldRequestBeBlocked(currentUrl, url)) {
-            return createBlockedResponse(url)
+        val pageUrl = view.url ?: currentUrl
+        if (shouldRequestBeBlocked(pageUrl, url)) {
+            return createBlockedResponse(url, pageUrl)
         }
         if (url.contains("detectPopBlock.js")) {
             val empty = ByteArrayInputStream(emptyResponseByteArray)
